@@ -15,7 +15,7 @@ Let's generate some random data from a known 2D truncated gaussian mixture model
 TNormal(μ1,σ1,μ2,σ2) = product_distribution(
                                             truncated(Normal(μ1,σ1),0,1),
                                             truncated(Normal(μ2,σ2),0,1)
-									)
+)
 # Define weights and distributions in mixtures
 weights = [0.3,0.7]
 dists = [TNormal(0.1,0.4,0.8,0.5),TNormal(0.9,0.1,0.3,0.2)]
@@ -23,20 +23,15 @@ X_dist = MixtureModel(dists,weights)
 
 # Generate 8000 samples from this distribution
 X = rand(X_dist,8000)
-
-#=
-X_dist is:
-
-=#
 ```
 
 We can then use `fit_gmm_2D` , and provide it the data samples, number of components and the bounds of the truncated space. 
 
 ```julia
 fit = fit_gmm_2D(X, # Provided Data as a 2xN Matrix
-  							 2; # Number of components to fit to
-  							bounds1=[0.0,1.0], # x bounds of the truncation
-  							bounds2=[0.0,1.0]) # y bounds of the truncation
+    2; # Number of components to fit to
+    bounds1=[0.0,1.0], # x bounds of the truncation
+    bounds2=[0.0,1.0]) # y bounds of the truncation
 ```
 
 This returns a Distributions.jl Mixture Model with parameters close to those that produced it (i.e. `X_dist`). `X_dist` is:
