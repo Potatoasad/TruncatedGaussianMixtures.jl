@@ -75,5 +75,5 @@ function update!(EM::ExpectationMaximization)
 	#### Evaluation Check
 	EM.score = score(EM)
 	#@show (EM.score[1] - prev_score)
-	EM.converged = ((EM.score - prev_score) ≤ EM.tol)
+	EM.converged = (abs(EM.score - prev_score) ≤ EM.tol)
 end
