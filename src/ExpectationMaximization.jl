@@ -68,8 +68,10 @@ function update!(EM::ExpectationMaximization)
 		#Hₖ = -mₖ*mₖ'
 		Σʼ = sum(zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
 		Σʼ = Σʼ .- mₖ*mₖ'
-		mix.σ1[k] = sqrt(Σʼ[1,1]);
-		mix.σ2[k] = sqrt(Σʼ[2,2]);
+		# if any Σ is below zero then map it to √(eps(typeof(Σʼ[...])))
+		σ1l = Σʼ[1,1]; σ2l = Σʼ[2,2];
+		mix.σ1[k] = σ1l < 0 ? √(eps(typeof(σ1l))) : sqrt(σ1l); 
+		mix.σ2[k] = σ2l < 0 ? √(eps(typeof(σ2l))) : sqrt(σ2l); 
 	end
 
 	#### Evaluation Check

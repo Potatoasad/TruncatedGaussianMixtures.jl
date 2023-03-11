@@ -14,7 +14,7 @@ function initialize(X,N)
 		σ2[k] = std(subset_2)
 		η[k] = length(subset_1)/size(X)[2]
 	end
-	(μ1,σ1,μ2,σ2,η)
+	μ1,σ1,μ2,σ2,η
 end
 
 function initialize(X,N, bounds1, bounds2)
