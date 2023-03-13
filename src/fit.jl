@@ -1,6 +1,5 @@
-function fit_gmm_2D(data, n_comps; bounds1=[0.0,1.0], bounds2=[0.0,1.0],tol=1e-6)
+function fit_gmm_2D(data, n_comps; bounds1=[0.0,1.0], bounds2=[0.0,1.0],tol=1e-6, MAX_REPS=1000, verbose=false)
 	EM = ExpectationMaximization(data,n_comps, bounds1=bounds1, bounds2=bounds2, tol=tol)
-	MAX_REPS = 1000
 	N = size(data)[2]
 	old_score = Inf
 	converge = abs(EM.score - old_score) ≤ tol
@@ -8,7 +7,9 @@ function fit_gmm_2D(data, n_comps; bounds1=[0.0,1.0], bounds2=[0.0,1.0],tol=1e-6
 		update!(EM)
 		converge = abs(EM.score - old_score)/N ≤ tol
 		old_score = EM.score
-		println(EM.score)
+		if verbose
+			println(EM.score)
+		end
 	end
 	reps = 10;
 	while (!EM.converged || old_score > 0.0) && (reps < MAX_REPS)
@@ -16,7 +17,9 @@ function fit_gmm_2D(data, n_comps; bounds1=[0.0,1.0], bounds2=[0.0,1.0],tol=1e-6
 		reps += 1
 		converge = abs(EM.score - old_score)/N ≤ tol
 		old_score = EM.score
-		println(EM.score)
+		if verbose
+			println(EM.score)
+		end
 	end
 
 	dist(EM.mix)
