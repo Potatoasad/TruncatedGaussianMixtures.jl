@@ -33,7 +33,7 @@ function score(EM::ExpectationMaximization)
 			total += (EM.zⁿₖ[n][k]*(log(mix.η[k]) + loglikelihood(kernel1, Y[n][1]) + loglikelihood(kernel2, Y[n][2])))
 		end
 	end
-	return total
+	return total/(length(mix.μ1)*length(Y))
 end
 
 
@@ -65,9 +65,12 @@ function update!(EM::ExpectationMaximization)
 		mix.μ1[k] = μ_vec[1]; mix.μ2[k] = μ_vec[2];
 
 		# Σ
+		M21 = var(NewKernelR) + mₖ[1]^2;
+		M22 = var(NewKernelΦ) + mₖ[2]^2;
+		Hₖ = diagm([σ1[k]^2,σ2[k]^2]) .- diagm([M21,M22])
 		#Hₖ = -mₖ*mₖ'
 		Σʼ = sum(zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
-		Σʼ = Σʼ .- mₖ*mₖ'
+		Σʼ = Σʼ .+ Hₖ
 		# if any Σ is below zero then map it to √(eps(typeof(Σʼ[...])))
 		σ1l = Σʼ[1,1]; σ2l = Σʼ[2,2];
 		mix.σ1[k] = σ1l < zero(σ1l) ? √(eps(typeof(σ1l))) : sqrt(σ1l); 
