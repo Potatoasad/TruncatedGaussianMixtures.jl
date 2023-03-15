@@ -3,6 +3,7 @@ module TruncatedGaussianMixtures
 using Distributions
 using LogExpFunctions
 using Clustering
+using LinearAlgebra
 
 include("TruncatedMixture.jl")
 include("initialize.jl")
