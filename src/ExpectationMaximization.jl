@@ -1,84 +1,152 @@
-mutable struct ExpectationMaximization{T <: TruncatedMixture, L, K}
+
+mutable struct ExpectationMaximization{CVS <: AbstractCovarianceStructure, L, T, K}
 	data::L
 	mix::T
 	tol::Float64
 	zⁿₖ::K
 	score::Float64
 	converged::Bool
+	cov_type::CVS
 end
-
-mat2vecs(A) = [A[:,i] for i in 1:size(A,2)]
 
 fixtype(x) = x;
 fixtype(x::Matrix) = mat2vecs(x);
 	
-ExpectationMaximization(data, mix, tol, znk) = ExpectationMaximization(fixtype(data), mix, tol, znk, 0.0, false)
+ExpectationMaximization(data, mix, tol, znk) = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)())
 
-function ExpectationMaximization(data, n_comps; bounds1=[0.0,1.0], bounds2=[0.0,1.0],tol=1e-16)
-	init = initialize(data, n_comps, bounds1, bounds2)
+covariance_type(x::ExpectationMaximization{CVS}) where {CVS <: AbstractCovarianceStructure} = CVS
+
+n_components(x::MixtureModel) = length(x.components)
+n_components(x::ExpectationMaximization) = length(x.mix.components)
+
+function Zⁿ(x::MixtureModel, datapoint::Vector)
+	N_kernels = length(x.components)
+	unnormalized = zeros(N_kernels);
+	for k ∈ 1:N_kernels
+		unnormalized[k] = log(x.prior.p[k]) + loglikelihood(x.components[k], datapoint)
+	end
+	return exp.(unnormalized .- LogExpFunctions.logsumexp(unnormalized))
+end
+
+function ExpectationMaximization(data, n_comps; cov=:diag, a=[0.0,0.0], b=[1.0,1.0],tol=1e-16)
+	init = initialize(data, n_comps, a, b; cov=cov)
 	data = fixtype(data)
 	zⁿₖ = [Zⁿ(init, point) for point ∈ data];
 	ExpectationMaximization(data, init, tol, zⁿₖ)
 end
 
-
 function score(EM::ExpectationMaximization)
 	Y = fixtype(EM.data);
 	mix = EM.mix;
 	total = 0.0
-	for k ∈ 1:length(mix.μ1)
-		kernel1 = kernel(mix.μ1[k], mix.σ1[k], mix.bounds1)
-		kernel2 = kernel(mix.μ2[k], mix.σ2[k], mix.bounds2)
+	for k ∈ 1:n_components(EM)
 		for n ∈ 1:length(Y)
-			total += (EM.zⁿₖ[n][k]*(log(mix.η[k]) + loglikelihood(kernel1, Y[n][1]) + loglikelihood(kernel2, Y[n][2])))
+			total += (EM.zⁿₖ[n][k]*(log(mix.prior.p[k]) + loglikelihood(mix.components[k], Y[n])))
 		end
 	end
-	return total/(length(mix.μ1)*length(Y))
+	return total/(n_components(EM)*length(Y))
 end
 
-
-function update!(EM::ExpectationMaximization)
+function update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovariance}
 	mix = EM.mix
-	μ1 = deepcopy(mix.μ1); μ2 = deepcopy(mix.μ2)
-	σ1 = deepcopy(mix.σ1); σ2 = deepcopy(mix.σ2)
-	η = deepcopy(mix.η);
+	μs, Σs, η = initialize_like(mix)
 
 	Y = EM.data;
 	prev_score = EM.score[1]
 	
-	bounds1 = mix.bounds1; bounds2 = mix.bounds2
+	a = mix.components[1].a; b = mix.components[1].b
+	d = length(mix)
 	N_components = length(η)
 	N_data = length(Y)
 
 	#### E-step & M-step
 	zⁿₖ = [Zⁿ(mix, point) for point ∈ Y];
 	for k ∈ 1:N_components
-		NewKernelR = truncated(Normal(0,σ1[k]),bounds1[1]-μ1[k], bounds1[2]-μ1[k])
-		NewKernelΦ = truncated(Normal(0,σ2[k]),bounds2[1]-μ2[k], bounds2[2]-μ2[k])
+		μₖ = mix.components[k].normal.μ
+		Σₖ = diag(mix.components[k].normal.Σ)
+		
+		NewKernels = [truncated(Normal(0.0,√(Σₖ[i])),a[i]-μₖ[i], b[i]-μₖ[i]) for i ∈ 1:d]
+
 		# η
-		mix.η[k] = mean(zⁿₖ[n][k] for n ∈ 1:N_data)
-		normalization = mix.η[k]*N_data
+		η[k] = mean(zⁿₖ[n][k] for n ∈ 1:N_data)
+		normalization = η[k]*N_data
 
 		# μ
-		mₖ = [mean(NewKernelR), mean(NewKernelΦ)]
+		mₖ = mean.(NewKernels)
 		μ_vec = sum(zⁿₖ[n][k]*Y[n] for n ∈ 1:N_data)/(normalization) .- mₖ
-		mix.μ1[k] = μ_vec[1]; mix.μ2[k] = μ_vec[2];
 
 		# Σ
-		M21 = var(NewKernelR) + mₖ[1]^2;
-		M22 = var(NewKernelΦ) + mₖ[2]^2;
-		Hₖ = diagm([σ1[k]^2,σ2[k]^2]) .- diagm([M21,M22])
-		#Hₖ = -mₖ*mₖ'
+		Ms = var.(NewKernels) .+ mₖ.^2
+		Hₖ = Σₖ .- Ms
 		Σʼ = sum(zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
-		Σʼ = Σʼ .+ Hₖ
-		# if any Σ is below zero then map it to √(eps(typeof(Σʼ[...])))
-		σ1l = Σʼ[1,1]; σ2l = Σʼ[2,2];
-		mix.σ1[k] = σ1l < zero(σ1l) ? √(eps(typeof(σ1l))) : sqrt(σ1l); 
-		mix.σ2[k] = σ2l < zero(σ2l) ? √(eps(typeof(σ2l))) : sqrt(σ2l); 
+		Σʼdiag = diag(Σʼ) .+ Hₖ
+		
+		for i ∈ 1:d
+			μs[i,k] = μ_vec[i]
+			Σs[i,k] = Σʼdiag[i]
+			#Σs[i,k] = Σʼ[i,i]
+		end
 	end
+	#println(η)
+	EM.mix = make_mixture(μs, Σs, η, a, b)
 
 	#### Evaluation Check
 	EM.score = score(EM)
 	#@show (EM.score[1] - prev_score)
 	EM.converged = (abs(EM.score - prev_score) ≤ EM.tol)
 end
+
+
+function update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance}
+	mix = EM.mix
+	#μs = deepcopy(mix.μ1); μ2 = deepcopy(mix.μ2)
+	#σ1 = deepcopy(mix.σ1); σ2 = deepcopy(mix.σ2)
+	#η = deepcopy(mix.η);
+	μs, Σs, η = initialize_like(mix)
+
+	Y = EM.data;
+	prev_score = EM.score[1]
+	
+	a = EM.mix.components[1].a; b = EM.mix.components[1].b
+	d = length(mix)
+	N_components = length(η)
+	N_data = length(Y)
+
+	#### E-step & M-step
+	zⁿₖ = [Zⁿ(mix, point) for point ∈ Y];
+	for k ∈ 1:N_components
+		μₖ = mix.components[k].normal.μ
+		Σₖ = mix.components[k].normal.Σ
+		NewKernel = TruncatedMvNormal(MvNormal(zero(μₖ), Σₖ), a .- μₖ, b .- μₖ)
+
+		M1,M2 = moments(NewKernel)
+		
+		# η
+		η[k] = mean(zⁿₖ[n][k] for n ∈ 1:N_data)
+		normalization = η[k]*N_data
+
+		# μ
+		mₖ = M1
+		μ_vec = sum(zⁿₖ[n][k]*Y[n] for n ∈ 1:N_data)/(normalization) .- mₖ
+
+		# Σ
+		Hₖ = Σₖ .- M2
+		Σʼ = sum(zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
+		Σʼ .= Σʼ .+ Hₖ
+		# Impose hermiticity if lost:
+		Σʼ = (Σʼ .+ Σʼ')./2
+		for i ∈ 1:d
+			μs[i,k] = μ_vec[i]
+			for j ∈ 1:d
+				Σs[i,j,k] = Σʼ[i,j]
+			end
+		end
+	end
+	EM.mix = make_mixture(μs, Σs, η, a, b)
+
+	#### Evaluation Check
+	EM.score = score(EM)
+	#@show (EM.score[1] - prev_score)
+	EM.converged = (abs(EM.score - prev_score) ≤ EM.tol)
+end
+
