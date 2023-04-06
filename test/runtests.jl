@@ -45,9 +45,9 @@ end
 
 @testset "Fitting Randomly generated Mixture Models" begin
 	@test abs(KLDivergence(test_result_pair(d=2, K=3, cov=:full)...)) ≤ 2e-2
-	@test abs(KLDivergence(test_result_pair(d=2, K=3, cov=:diag, tol=1e-4, MAX_REPS=3000)...)) ≤ 1
+	@test abs(KLDivergence(test_result_pair(d=2, K=3, cov=:diag)...)) ≤ 1e-2
 	@test abs(KLDivergence(test_result_pair(d=2, K=20, cov=:full)...)) ≤ 2e-2
-	@test abs(KLDivergence(test_result_pair(d=2, K=20, cov=:diag, tol=1e-4, MAX_REPS=3000)...)) ≤ 1
+	@test abs(KLDivergence(test_result_pair(d=2, K=20, cov=:diag)...)) ≤ 1e-2
 	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:full)...)) ≤ 2e-2
-	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:diag, tol=1e-5, MAX_REPS=3000)...)) ≤ 1
+	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:diag)...)) ≤ 1e-2
 end

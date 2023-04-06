@@ -14,7 +14,7 @@ function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false)
 	while (!converge || old_score > 0.0) && (reps < MAX_REPS)
 		update!(EM)
 		reps += 1
-		converge = abs(EM.score - old_score) ≤ tol
+		converge = (abs(EM.score - old_score)/old_score) ≤ tol
 		if verbose
 			println(abs(EM.score - old_score))
 		end

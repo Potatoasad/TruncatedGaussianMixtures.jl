@@ -9,7 +9,7 @@ dim_of_normal(x::MvNormal) = length(x.μ)
 
 function log_mvnormcdf(dist::DiagNormal, a, b)
 	total = 0.0
-	for i ∈ dim_of_normal(dist)
+	for i ∈ 1:dim_of_normal(dist)
 		dnorm = Normal(dist.μ[i], sqrt(dist.Σ[i,i]))
 		total += logsubexp(logcdf(dnorm, b[i]),logcdf(dnorm, a[i]))
 	end

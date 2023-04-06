@@ -1,11 +1,5 @@
 # TruncatedGaussianMixtures.jl
- Allows one to fit a gaussian mixture model using Truncated Gaussian Kernels. 
- Currently only works for Kernels that are constrained to be 
- - uncorrelated
- - 2 dimensional
-
-full correlations and general dimensions will be done in the future as I get time.
-
+ Allows one to fit a gaussian mixture model using Truncated Gaussian Kernels. Works only for Gaussians truncated to lie inside some box
 ## Usage
 
 Let's generate some random data from a known 2D truncated gaussian mixture model:
@@ -28,10 +22,12 @@ X = rand(X_dist,8000)
 We can then use `fit_gmm_2D` , and provide it the data samples, number of components and the bounds of the truncated space. 
 
 ```julia
-fit = fit_gmm_2D(X, # Provided Data as a 2xN Matrix
+fit = fit_gmm(X, # Provided Data as a 2xN Matrix
     2; # Number of components to fit to
-    bounds1=[0.0,1.0], # x bounds of the truncation
-    bounds2=[0.0,1.0]) # y bounds of the truncation
+    [0.0,0.0], # lower bounds of the truncation
+    [1.0,1.0], # upper bounds of the truncation
+  	cov=:diag  # Constrains the truncated mixtures to be diagonal
+ )
 ```
 
 This returns a Distributions.jl Mixture Model with parameters close to those that produced it (i.e. `X_dist`). `X_dist` is:
