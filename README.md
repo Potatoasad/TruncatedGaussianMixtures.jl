@@ -1,5 +1,14 @@
 # TruncatedGaussianMixtures.jl
  Allows one to fit a gaussian mixture model using Truncated Gaussian Kernels. Works only for Gaussians truncated to lie inside some box
+
+## Advantages
+
+As we can see the standard Gaussian Mixture Model has its kernels avoid the edges. A truncated kernel reproduces the probability distributions at the edges as well.
+
+<img src="./imgs/Comparison2.gif"> </img>
+
+<img src="./imgs/Comparison3.gif"> </img>
+
 ## Usage
 
 Let's generate some random data from a known 2D truncated gaussian mixture model:
