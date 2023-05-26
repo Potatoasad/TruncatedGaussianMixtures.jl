@@ -52,7 +52,7 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovaria
 	μs, Σs, η = initialize_like(mix)
 
 	Y = EM.data;
-	prev_score = EM.score[1]
+	prev_score = EM.score
 	
 	a = mix.components[1].a; b = mix.components[1].b
 	d = length(mix)
@@ -60,7 +60,7 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovaria
 	N_data = length(Y)
 
 	#### E-step & M-step
-	zⁿₖ = [Zⁿ(mix, point) for point ∈ Y];
+	EM.zⁿₖ = [Zⁿ(mix, point) for point ∈ Y];
 	for k ∈ 1:N_components
 		μₖ = mix.components[k].normal.μ
 		Σₖ = diag(mix.components[k].normal.Σ)
@@ -68,17 +68,17 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovaria
 		NewKernels = [truncated(Normal(0.0,√(Σₖ[i])),a[i]-μₖ[i], b[i]-μₖ[i]) for i ∈ 1:d]
 
 		# η
-		η[k] = mean(zⁿₖ[n][k] for n ∈ 1:N_data)
+		η[k] = mean(EM.zⁿₖ[n][k] for n ∈ 1:N_data)
 		normalization = η[k]*N_data
 
 		# μ
 		mₖ = mean.(NewKernels)
-		μ_vec = sum(zⁿₖ[n][k]*Y[n] for n ∈ 1:N_data)/(normalization) .- mₖ
+		μ_vec = sum(EM.zⁿₖ[n][k]*Y[n] for n ∈ 1:N_data)/(normalization) .- mₖ
 
 		# Σ
 		Ms = var.(NewKernels) .+ mₖ.^2
 		Hₖ = Σₖ .- Ms
-		Σʼ = sum(zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
+		Σʼ = sum(EM.zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
 		Σʼdiag = diag(Σʼ) .+ Hₖ
 		
 		for i ∈ 1:d
@@ -105,7 +105,7 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance}
 	μs, Σs, η = initialize_like(mix)
 
 	Y = EM.data;
-	prev_score = EM.score[1]
+	prev_score = EM.score
 	
 	a = EM.mix.components[1].a; b = EM.mix.components[1].b
 	d = length(mix)
@@ -113,7 +113,7 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance}
 	N_data = length(Y)
 
 	#### E-step & M-step
-	zⁿₖ = [Zⁿ(mix, point) for point ∈ Y];
+	EM.zⁿₖ = [Zⁿ(mix, point) for point ∈ Y];
 	for k ∈ 1:N_components
 		μₖ = mix.components[k].normal.μ
 		Σₖ = mix.components[k].normal.Σ
@@ -122,16 +122,16 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance}
 		M1,M2 = moments(NewKernel)
 		
 		# η
-		η[k] = mean(zⁿₖ[n][k] for n ∈ 1:N_data)
+		η[k] = mean(EM.zⁿₖ[n][k] for n ∈ 1:N_data)
 		normalization = η[k]*N_data
 
 		# μ
 		mₖ = M1
-		μ_vec = sum(zⁿₖ[n][k]*Y[n] for n ∈ 1:N_data)/(normalization) .- mₖ
+		μ_vec = sum(EM.zⁿₖ[n][k]*Y[n] for n ∈ 1:N_data)/(normalization) .- mₖ
 
 		# Σ
 		Hₖ = Σₖ .- M2
-		Σʼ = sum(zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
+		Σʼ = sum(EM.zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
 		Σʼ .= Σʼ .+ Hₖ
 		# Impose hermiticity if lost:
 		Σʼ = (Σʼ .+ Σʼ')./2

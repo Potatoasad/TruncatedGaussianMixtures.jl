@@ -9,6 +9,7 @@ using Base: eltype, length
 using Distributions: _rand!, _logpdf, sampler, AbstractRNG
 using MvNormalCDF:mvnormcdf
 using InvertedIndices
+using ProgressMeter
 
 include("TruncatedMvNormal/loglikelihood.jl")
 include("TruncatedMvNormal/moments.jl")

@@ -33,21 +33,21 @@ function KLDivergence(d1, d2; N_samps=8_000)
 	0.5*(k1+k2)
 end
 
-function test_result_pair(;d=2, K=3, cov=:full, tol=1e-2, MAX_REPS=100)
-	test_mixture = generate_random_mixture(d=2, K=3, cov=cov);
+function test_result_pair(;d=2, K=3, cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false)
+	test_mixture = generate_random_mixture(d=d, K=K, cov=cov);
 	fitted_mixture = fit_gmm(rand(test_mixture,8000),
 							length(test_mixture.components),
 							test_mixture.components[1].a,
 							test_mixture.components[1].b,
-							cov=cov, verbose=false, tol=tol,MAX_REPS=MAX_REPS)
+							cov=cov, verbose=verbose, tol=tol,MAX_REPS=MAX_REPS, progress=progress)
 	test_mixture, fitted_mixture
 end
 
 @testset "Fitting Randomly generated Mixture Models" begin
-	@test abs(KLDivergence(test_result_pair(d=2, K=3, cov=:full)...)) ≤ 2e-2
-	@test abs(KLDivergence(test_result_pair(d=2, K=3, cov=:diag)...)) ≤ 1e-2
-	@test abs(KLDivergence(test_result_pair(d=2, K=20, cov=:full)...)) ≤ 2e-2
-	@test abs(KLDivergence(test_result_pair(d=2, K=20, cov=:diag)...)) ≤ 1e-2
-	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:full)...)) ≤ 2e-2
-	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:diag)...)) ≤ 1e-2
+	@test abs(KLDivergence(test_result_pair(d=2, K=3, cov=:full, tol=1e-3)...)) ≤ 2e-2
+	@test abs(KLDivergence(test_result_pair(d=2, K=3, cov=:diag, tol=1e-3)...)) ≤ 1e-2
+	@test abs(KLDivergence(test_result_pair(d=2, K=20, cov=:full, tol=1e-3)...)) ≤ 2e-2
+	@test abs(KLDivergence(test_result_pair(d=2, K=20, cov=:diag, tol=1e-3)...)) ≤ 1e-2
+	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:full, tol=1e-3)...)) ≤ 2e-2
+	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:diag, tol=1e-3)...)) ≤ 1e-2
 end
