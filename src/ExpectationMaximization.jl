@@ -23,7 +23,7 @@ function Zⁿ(x::MixtureModel, datapoint::Vector)
 	N_kernels = length(x.components)
 	unnormalized = zeros(N_kernels);
 	for k ∈ 1:N_kernels
-		unnormalized[k] = log(x.prior.p[k]) + loglikelihood(x.components[k], datapoint)
+		unnormalized[k] = log(x.prior.p[k]) + Distributions.logpdf(x.components[k], datapoint)
 	end
 	return exp.(unnormalized .- LogExpFunctions.logsumexp(unnormalized))
 end
@@ -41,7 +41,7 @@ function score(EM::ExpectationMaximization)
 	total = 0.0
 	for k ∈ 1:n_components(EM)
 		for n ∈ 1:length(Y)
-			total += (EM.zⁿₖ[n][k]*(log(mix.prior.p[k]) + loglikelihood(mix.components[k], Y[n])))
+			total += (EM.zⁿₖ[n][k]*(log(mix.prior.p[k]) + Distributions.logpdf(mix.components[k], Y[n])))
 		end
 	end
 	return total/(n_components(EM)*length(Y))

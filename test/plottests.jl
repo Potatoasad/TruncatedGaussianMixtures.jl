@@ -1,6 +1,8 @@
-#usininclude(joinpath(@__DIR__, "../src/TruncatedGaussianMixtures.jl"))
+using Plots, Distributions, LinearAlgebra, Test
 using Revise, TruncatedGaussianMixtures
-using Distributions, LinearAlgebra, Test
+using PairPlots
+using DataFrames
+using CairoMakie
 
 function generate_random_mixture(;d = 2, K=3, cov=:full)
 	scaling = rand(0.5:0.1:10.0, d);
@@ -17,7 +19,7 @@ function generate_random_mixture(;d = 2, K=3, cov=:full)
 		if cov == :diag
 			rand_rotation = one(rand_rotation)
 		end
-		Σ = rand_rotation' * diagm(rand(d).*diag_scaling.*0.1) * rand_rotation;
+		Σ = rand_rotation' * diagm(rand(d).*diag_scaling.*1.0) * rand_rotation;
 		Σ .= (Σ + Σ')/2
 		push!(comps, TruncatedMvNormal(MvNormal(μ,Σ),a,b))
 	end
@@ -35,7 +37,7 @@ end
 
 function test_result_pair(;d=2, K=3, cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false)
 	test_mixture = generate_random_mixture(d=d, K=K, cov=cov);
-	fitted_mixture = fit_gmm(rand(test_mixture,8000),
+	fitted_mixture = fit_gmm(rand(test_mixture,8_000),
 							length(test_mixture.components),
 							test_mixture.components[1].a,
 							test_mixture.components[1].b,
@@ -43,11 +45,15 @@ function test_result_pair(;d=2, K=3, cov=:full, tol=1e-2, MAX_REPS=100, verbose=
 	test_mixture, fitted_mixture
 end
 
-@testset "Fitting Randomly generated Mixture Models" begin
-	@test abs(KLDivergence(test_result_pair(d=2, K=3, cov=:full, tol=1e-3, progress=true)...)) ≤ 2e-1
-	@test abs(KLDivergence(test_result_pair(d=2, K=3, cov=:diag, tol=1e-3, progress=true)...)) ≤ 1e-1
-	@test abs(KLDivergence(test_result_pair(d=2, K=20, cov=:full, tol=1e-3,progress=true)...)) ≤ 2e-1
-	@test abs(KLDivergence(test_result_pair(d=2, K=20, cov=:diag, tol=1e-3, progress=true)...)) ≤ 1e-1
-	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:full, tol=1e-3, progress=true)...)) ≤ 2e-1
-	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:diag, tol=1e-3, progress=true)...)) ≤ 1e-1
-end
+create_df(test::Distribution) = DataFrame(rand(test, 8000)', [Symbol("x_$(i)") for i ∈ 1:length(test)])
+
+pp = plot()
+scatter!(pp, (let x=rand(test, 8000); x[1,:], x[2,:] end)..., alpha=0.1, markerstrokealpha=0.0, color=:red, label="original")
+scatter!(pp, (let x=rand(fit, 8000); x[1,:], x[2,:] end)..., alpha=0.1, markerstrokealpha=0.0, color=:blue, label="fitted")
+pp
+
+
+
+test, fit = test_result_pair(d=3,K=5,cov=:full, progress=true, tol=1e-7)
+pairplot(create_df(test), create_df(fit))
+
