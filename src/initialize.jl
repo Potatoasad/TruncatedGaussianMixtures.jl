@@ -27,8 +27,26 @@ function initialize_like(AB::MixtureModel{A,B,TruncatedMvNormal{FullNormal,T}}) 
 	μs, Σs, ηs
 end
 
+function fix_zero_covariances(Σ::AbstractMatrix, a, b, N)
+	if det(Σ) == 0.0
+		Σ = Σ .+  diagm((b-a)./N).^2
+	else
+		return Σ
+	end
+end
+
+function fix_zero_covariances(Σ::AbstractVector, a, b, N)
+	if any(Σ .== zero(eltype(Σ)))
+		Σ = Σ .+  (b-a)./N
+	else
+		return Σ
+	end
+end
+
 function initialize(X,K, ::FullCovariance)
 	Result = kmeans(X,K)
+	N = size(X,2);
+	a,b = minimum(X, dims=2), maximum(X, dims=2);
 	d,_ = size(X)
 	z = Result.assignments
 	μs = zeros(d,K);
@@ -40,13 +58,15 @@ function initialize(X,K, ::FullCovariance)
 		subset_mean_rem = subset .- mean(subset, dims=2)
 		μs[:, k] = means[k][:]
 		ηs[k] = length(subset[1,:])/size(X)[2]
-		Σs[:,:,k] = (subset_mean_rem * subset_mean_rem') ./ length(subset[1,:])
+		Σs[:,:,k] = fix_zero_covariances((subset_mean_rem * subset_mean_rem') ./ length(subset[1,:]),a,b,N)
 	end
 	μs,Σs,ηs
 end
 
 function initialize(X,K, ::DiagonalCovariance)
 	Result = kmeans(X,K)
+	N = size(X,2);
+	a,b = minimum(X, dims=2), maximum(X, dims=2);
 	d,_ = size(X)
 	z = Result.assignments
 	μs = zeros(d,K);
@@ -58,7 +78,7 @@ function initialize(X,K, ::DiagonalCovariance)
 		subset_mean_rem = subset .- mean(subset, dims=2)
 		μs[:,k] = means[k][:]
 		ηs[k] = length(subset[1,:])/size(X)[2]
-		Σs[:,k] = diag((subset_mean_rem * subset_mean_rem') ./ length(subset[1,:]))
+		Σs[:,k] = fix_zero_covariances(diag((subset_mean_rem * subset_mean_rem') ./ length(subset[1,:])),a,b,N)
 	end
 	μs,Σs,ηs
 end
