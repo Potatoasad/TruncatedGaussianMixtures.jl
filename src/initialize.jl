@@ -28,7 +28,7 @@ function initialize_like(AB::MixtureModel{A,B,TruncatedMvNormal{FullNormal,T}}) 
 end
 
 function fix_zero_covariances(Σ::AbstractMatrix, a, b, N)
-	if det(Σ) == 0.0
+	if det(Σ) <= 0.0
 		Σ = Σ .+  diagm((b-a)./N).^2
 	else
 		return Σ
@@ -36,8 +36,8 @@ function fix_zero_covariances(Σ::AbstractMatrix, a, b, N)
 end
 
 function fix_zero_covariances(Σ::AbstractVector, a, b, N)
-	if any(Σ .== zero(eltype(Σ)))
-		Σ = Σ .+  (b-a)./N
+	if any(Σ .<= zero(eltype(Σ)))
+		Σ = Σ .+  ((b-a)./N).^2
 	else
 		return Σ
 	end
