@@ -73,20 +73,6 @@ function Distributions._rand!(rng::AbstractRNG, d::TruncatedMvNormal, x::Abstrac
 	x
 end
 
-# Naive implementation of sampling from normal
-function Distributions._rand!(rng::AbstractRNG, d::TruncatedMvNormal, x::AbstractArray{T}) where {T <: Real}
-	for i ∈ 1:size(x,2)
-		accepted = false
-		val = zeros(eltype(d),length(d))
-		while !accepted
-			val = rand(rng, d.normal)
-			accepted = Distributions.insupport(d, val)
-		end
-		x[:,i] = val
-	end
-	x
-end
-
 # Specific implementation of sampling from diagonal TruncatedMvNormal
 diagnormal_dists(d) = [truncated(Normal(μ, √(Σ)),a, b)  for (μ,Σ,a,b) ∈ zip(d.normal.μ,diag(d.normal.Σ),d.a, d.b)]
 
