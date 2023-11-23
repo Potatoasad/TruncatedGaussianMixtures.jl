@@ -6,7 +6,7 @@ using CairoMakie
 
 function generate_random_mixture(;d = 2, K=3, cov=:full)
 	scaling = rand(0.5:0.1:10.0, d);
-	diag_scaling = rand(0.5:0.1:2.0)	
+	diag_scaling = rand(0.5:0.1:6.0)	
 	a = zeros(d)
 	b = scaling
 	
@@ -45,7 +45,17 @@ function test_result_pair(;d=2, K=3, cov=:full, tol=1e-2, MAX_REPS=100, verbose=
 	test_mixture, fitted_mixture
 end
 
-create_df(test::Distribution) = DataFrame(rand(test, 8000)', [Symbol("x_$(i)") for i ∈ 1:length(test)])
+function test_result_pair2(;d=2, K=3, cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false)
+	test_mixture = generate_random_mixture(d=d, K=K, cov=cov);
+	fitted_mixture = fit_gmm(rand(test_mixture,800),
+							40,
+							test_mixture.components[1].a,
+							test_mixture.components[1].b,
+							cov=cov, verbose=verbose, tol=tol,MAX_REPS=MAX_REPS, progress=progress)
+	test_mixture, fitted_mixture
+end
+
+create_df(test::Distribution) = DataFrame(rand(test, 800)', [Symbol("x_$(i)") for i ∈ 1:length(test)])
 
 pp = plot()
 scatter!(pp, (let x=rand(test, 8000); x[1,:], x[2,:] end)..., alpha=0.1, markerstrokealpha=0.0, color=:red, label="original")
@@ -54,6 +64,6 @@ pp
 
 
 
-test, fit = test_result_pair(d=3,K=5,cov=:full, progress=true, tol=1e-7)
+test, fit = test_result_pair2(d=5,K=5,cov=:diag, progress=true, tol=1e-5, MAX_REPS=400)
 pairplot(create_df(test), create_df(fit))
 

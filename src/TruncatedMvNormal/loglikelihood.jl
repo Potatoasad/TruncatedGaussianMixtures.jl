@@ -73,6 +73,44 @@ function Distributions._rand!(rng::AbstractRNG, d::TruncatedMvNormal, x::Abstrac
 	x
 end
 
+# Naive implementation of sampling from normal
+function Distributions._rand!(rng::AbstractRNG, d::TruncatedMvNormal, x::AbstractArray{T}) where {T <: Real}
+	for i ∈ 1:size(x,2)
+		accepted = false
+		val = zeros(eltype(d),length(d))
+		while !accepted
+			val = rand(rng, d.normal)
+			accepted = Distributions.insupport(d, val)
+		end
+		x[:,i] = val
+	end
+	x
+end
+
+# Specific implementation of sampling from diagonal TruncatedMvNormal
+diagnormal_dists(d) = [truncated(Normal(μ, √(Σ)),a, b)  for (μ,Σ,a,b) ∈ zip(d.normal.μ,diag(d.normal.Σ),d.a, d.b)]
+
+function Distributions._rand!(rng::Random.AbstractRNG, d::TruncatedMvNormal{L}, x::AbstractArray{T}) where {T <: Real, L <: Distributions.DiagNormal}
+    if d.logtp > -3.0
+        for i ∈ 1:size(x,2)
+            accepted = false
+            val = zeros(eltype(d),length(d))
+            while !accepted
+                val = rand(rng, d.normal)
+                accepted = Distributions.insupport(d, val)
+            end
+            x[:,i] = val
+        end
+    else
+        dists = diagnormal_dists(d)
+        for k ∈ 1:length(d)
+           k_dim_slice = @view x[k,:]
+           Distributions._rand!(rng, dists[k], k_dim_slice)
+        end
+    end
+    x
+end
+
 function Distributions._logpdf(d::TruncatedMvNormal, x::Vector)
 	if !Distributions.insupport(d,x)
 		return typemin(eltype(d))
