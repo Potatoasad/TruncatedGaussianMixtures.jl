@@ -90,7 +90,7 @@ end
 # Specific implementation of sampling from diagonal TruncatedMvNormal
 diagnormal_dists(d) = [truncated(Normal(μ, √(Σ)),a, b)  for (μ,Σ,a,b) ∈ zip(d.normal.μ,diag(d.normal.Σ),d.a, d.b)]
 
-function Distributions._rand!(rng::Random.AbstractRNG, d::TruncatedMvNormal{L}, x::AbstractArray{T}) where {T <: Real, L <: Distributions.DiagNormal}
+function Distributions._rand!(rng::AbstractRNG, d::TruncatedMvNormal{L}, x::AbstractArray{T}) where {T <: Real, L <: Distributions.DiagNormal}
     if d.logtp > -3.0
         for i ∈ 1:size(x,2)
             accepted = false
