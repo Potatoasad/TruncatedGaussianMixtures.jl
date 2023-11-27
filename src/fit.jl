@@ -1,4 +1,4 @@
-function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false)
+function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false)
 	if progress
 		progressbar = Progress(MAX_REPS)
 	end
@@ -31,6 +31,9 @@ function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, p
 	end
 	if progress
 		finish!(progressbar)
+	end
+	if responsibilities
+		return EM
 	end
 	EM.mix
 end
