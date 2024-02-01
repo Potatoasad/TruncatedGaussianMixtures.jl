@@ -56,7 +56,7 @@ end
 
 F(k::Int, x::Real, d::TruncatedMvNormal) = F(k, x, d.normal.Σ, d.a, d.b)
 
-α(Σ,a,b) = mvnormcdf(zero(size(Σ,2)), Σ, a ,b)[1]
+α(Σ,a,b) = mvnormcdf(Σ, a ,b)[1]
 
 EXᵢ(Σ,a,b) = (Σ * [F(k, a[k],Σ,a,b)-F(k,b[k],Σ,a,b) for k ∈ 1:length(a)]) ./ α(Σ,a,b)
 
