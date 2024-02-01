@@ -47,6 +47,8 @@ function initialize(X,K, ::FullCovariance)
 	Result = kmeans(X,K)
 	N = size(X,2);
 	a,b = minimum(X, dims=2), maximum(X, dims=2);
+	a = reshape(a, length(a))
+	b = reshape(b, length(b))
 	d,_ = size(X)
 	z = Result.assignments
 	μs = zeros(d,K);
@@ -67,6 +69,8 @@ function initialize(X,K, ::DiagonalCovariance)
 	Result = kmeans(X,K)
 	N = size(X,2);
 	a,b = minimum(X, dims=2), maximum(X, dims=2);
+	a = reshape(a, length(a))
+	b = reshape(b, length(b))
 	d,_ = size(X)
 	z = Result.assignments
 	μs = zeros(d,K);
@@ -102,6 +106,8 @@ function initialize(X,N, a, b; cov=:diag)
 	#w = rand(N)
 	#μ1,σ1,μ2,σ2,η = (rand(N),rand(N),rand(N),rand(N),w./(sum(w)))
 	#TruncatedMixture(μ1,μ2,σ1,σ2,η,bounds1,bounds2)
+	#println(cholesky(Σs[:,:,2]))
+	#println(cholesky(Σs[:,:,1]))
 	make_mixture(μs, Σs, ηs, a, b)
 end
 

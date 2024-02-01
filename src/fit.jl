@@ -1,8 +1,8 @@
-function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false)
+function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false)
 	if progress
 		progressbar = Progress(MAX_REPS)
 	end
-	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov)
+	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure)
 	old_score = Inf
 	converge = false
 	for i ∈ 1:10

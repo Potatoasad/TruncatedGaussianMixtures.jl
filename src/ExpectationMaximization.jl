@@ -7,12 +7,15 @@ mutable struct ExpectationMaximization{CVS <: AbstractCovarianceStructure, L, T,
 	score::Float64
 	converged::Bool
 	cov_type::CVS
+	block_structure::Vector{Int64}
 end
 
 fixtype(x) = x;
 fixtype(x::Matrix) = mat2vecs(x);
 	
-ExpectationMaximization(data, mix, tol, znk) = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)())
+ExpectationMaximization(data, mix, tol, znk) = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), zeros(Int64, length(mix)))
+ExpectationMaximization(data, mix, tol, znk, block_structure) = ExpectationMaximization(data, mix, tol, znk) # Ignore by default
+ExpectationMaximization(data, mix, tol, znk, block_structure::Vector{Int64}) = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), block_structure)
 
 covariance_type(x::ExpectationMaximization{CVS}) where {CVS <: AbstractCovarianceStructure} = CVS
 
@@ -28,11 +31,11 @@ function Zⁿ(x::MixtureModel, datapoint::Vector)
 	return exp.(unnormalized .- LogExpFunctions.logsumexp(unnormalized))
 end
 
-function ExpectationMaximization(data, n_comps; cov=:diag, a=[0.0,0.0], b=[1.0,1.0],tol=1e-16)
+function ExpectationMaximization(data, n_comps; cov=:diag, a=[0.0,0.0], b=[1.0,1.0], tol=1e-16, block_structure=false)
 	init = initialize(data, n_comps, a, b; cov=cov)
 	data = fixtype(data)
 	zⁿₖ = [Zⁿ(init, point) for point ∈ data];
-	ExpectationMaximization(data, init, tol, zⁿₖ)
+	ExpectationMaximization(data, init, tol, zⁿₖ, block_structure)
 end
 
 function score(EM::ExpectationMaximization)
@@ -80,6 +83,12 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovaria
 		Hₖ = Σₖ .- Ms
 		Σʼ = sum(EM.zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
 		Σʼdiag = diag(Σʼ) .+ Hₖ
+
+		# If we find a particular kernel with only one point, we set it's weight to zero
+		if any( Σʼdiag .≤ zero(eltype(Σʼdiag)) ) 
+			η[k] = zero(η[k])
+			Σʼdiag .+= (((1/N_data) .* (b .- a)).^2) .* ones(eltype(Σʼdiag), length(Σʼdiag))
+		end
 		
 		for i ∈ 1:d
 			μs[i,k] = μ_vec[i]
@@ -88,6 +97,7 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovaria
 		end
 	end
 	#println(η)
+
 	EM.mix = make_mixture(μs, Σs, η, a, b)
 
 	#### Evaluation Check
@@ -138,7 +148,12 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance}
 		for i ∈ 1:d
 			μs[i,k] = μ_vec[i]
 			for j ∈ 1:d
-				Σs[i,j,k] = Σʼ[i,j]
+				# Remove correlations that should not exist
+				if EM.block_structure[i] == EM.block_structure[j]
+					Σs[i,j,k] = Σʼ[i,j]
+				else
+					Σs[i,j,k] = zero(Σʼ[i,j])
+				end
 			end
 		end
 	end
