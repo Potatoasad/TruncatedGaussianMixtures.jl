@@ -61,6 +61,8 @@ function initialize(X,K, ::FullCovariance)
 		μs[:, k] = means[k][:]
 		ηs[k] = length(subset[1,:])/size(X)[2]
 		Σs[:,:,k] = fix_zero_covariances((subset_mean_rem * subset_mean_rem') ./ length(subset[1,:]),a,b,N)
+		Σs[:,:,k] = @. (Σs[:,:,k] + Σs[:,:,k]')/2
+		#println(Σs[:,:,k])
 	end
 	μs,Σs,ηs
 end

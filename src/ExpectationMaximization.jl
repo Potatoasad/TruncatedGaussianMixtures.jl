@@ -139,12 +139,14 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance}
 		mₖ = M1
 		μ_vec = sum(EM.zⁿₖ[n][k]*Y[n] for n ∈ 1:N_data)/(normalization) .- mₖ
 
+
 		# Σ
 		Hₖ = Σₖ .- M2
 		Σʼ = sum(EM.zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
 		Σʼ .= Σʼ .+ Hₖ
 		# Impose hermiticity if lost:
 		Σʼ = (Σʼ .+ Σʼ')./2
+
 		for i ∈ 1:d
 			μs[i,k] = μ_vec[i]
 			for j ∈ 1:d
