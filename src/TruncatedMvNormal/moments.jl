@@ -17,8 +17,8 @@ function Σ₋ₖₖ(kq::Vector{Int}, Σ::AbstractMatrix)
     Σ[Not(kq),Not(kq)] .- (Σ[Not(kq),kq] * inv(Σ[kq,kq]) * Σ[kq, Not(kq)])
 end
 
-#√ᵪ(x) = exp(logsumexp([log(x),log(10*eps(x))])*(1/2));
-√ᵪ(x) = √(x);
+#x(x) = exp(logsumexp([log(x),log(10*eps(x))])*(1/2));
+#√(x) = √(x);
 
 function F(k::Int, x::Real, Σ::AbstractMatrix, a::Vector{T}, b::Vector{T}) where {T <: Real}
     Σ₋ₖₖ_ = Σ₋ₖₖ(k, Σ)
@@ -26,14 +26,14 @@ function F(k::Int, x::Real, Σ::AbstractMatrix, a::Vector{T}, b::Vector{T}) wher
     
     if prod(size(Σ₋ₖₖ_)) == 1
         logcdf_part = logsubexp(
-            logcdf(Normal(μ₋ₖₖ_[1],√ᵪ(Σ₋ₖₖ_[1,1])), b[Not(k)][1]),
-            logcdf(Normal(μ₋ₖₖ_[1],√ᵪ(Σ₋ₖₖ_[1,1])), a[Not(k)][1]))
+            logcdf(Normal(μ₋ₖₖ_[1],√(Σ₋ₖₖ_[1,1])), b[Not(k)][1]),
+            logcdf(Normal(μ₋ₖₖ_[1],√(Σ₋ₖₖ_[1,1])), a[Not(k)][1]))
     elseif prod(size(Σ₋ₖₖ_)) == 0
         logcdf_part = 0.0
     else
         logcdf_part = mvnormcdf(μ₋ₖₖ_,Σ₋ₖₖ_,a[Not(k)],b[Not(k)])[1] |> log
     end
-    logpdf_part = logpdf(Normal(zero(x), √ᵪ(Σ[k,k])), x)
+    logpdf_part = logpdf(Normal(zero(x), √(Σ[k,k])), x)
     (logpdf_part + logcdf_part) |> exp
 end
 
@@ -43,8 +43,8 @@ function F(kq::Vector{Int}, x::Vector{T}, Σ::AbstractMatrix, a::Vector{T}, b::V
     
     if prod(size(Σ₋ₖₖ_)) == 1
         logcdf_part = logsubexp(
-            logcdf(Normal(μ₋ₖₖ_[1],√ᵪ(Σ₋ₖₖ_[1,1])), b[Not(kq)][1]),
-            logcdf(Normal(μ₋ₖₖ_[1],√ᵪ(Σ₋ₖₖ_[1,1])), a[Not(kq)][1]))
+            logcdf(Normal(μ₋ₖₖ_[1],√(Σ₋ₖₖ_[1,1])), b[Not(kq)][1]),
+            logcdf(Normal(μ₋ₖₖ_[1],√(Σ₋ₖₖ_[1,1])), a[Not(kq)][1]))
     elseif prod(size(Σ₋ₖₖ_)) == 0
         logcdf_part = 0.0
     else
