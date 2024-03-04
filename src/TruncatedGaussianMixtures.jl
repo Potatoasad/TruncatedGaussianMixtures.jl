@@ -15,9 +15,10 @@ include("TruncatedMvNormal/loglikelihood.jl")
 include("TruncatedMvNormal/moments.jl")
 include("initialize.jl")
 include("ExpectationMaximization.jl")
+include("annealing_schedule.jl")
 include("fit.jl")
 
 
-export update!, ExpectationMaximization, TruncatedMvNormal, fit_gmm, initialize
+export update!, ExpectationMaximization, TruncatedMvNormal, fit_gmm, initialize, AnnealingSchedule
 
 end # module TruncatedGaussianMixtures

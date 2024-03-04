@@ -31,7 +31,16 @@ function Zⁿ(x::MixtureModel, datapoint::Vector)
 	return exp.(unnormalized .- LogExpFunctions.logsumexp(unnormalized))
 end
 
-function ExpectationMaximization(data, n_comps; cov=:diag, a=[0.0,0.0], b=[1.0,1.0], tol=1e-16, block_structure=false)
+function Zⁿ(x::MixtureModel, datapoint::Vector, β::Float64)
+	N_kernels = length(x.components)
+	unnormalized = zeros(N_kernels);
+	for k ∈ 1:N_kernels
+		unnormalized[k] = log(x.prior.p[k]) + β * Distributions.logpdf(x.components[k], datapoint)
+	end
+	return exp.(unnormalized .- LogExpFunctions.logsumexp(unnormalized))
+end
+
+function ExpectationMaximization(data, n_comps; cov=:diag, a=[0.0,0.0], b=[1.0,1.0], tol=1e-16, block_structure=false, β=1.0)
 	init = initialize(data, n_comps, a, b; cov=cov)
 	data = fixtype(data)
 	zⁿₖ = [Zⁿ(init, point) for point ∈ data];
@@ -50,7 +59,7 @@ function score(EM::ExpectationMaximization)
 	return total/(n_components(EM)*length(Y))
 end
 
-function update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovariance}
+function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: DiagonalCovariance}
 	mix = EM.mix
 	μs, Σs, η = initialize_like(mix)
 
@@ -63,7 +72,7 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovaria
 	N_data = length(Y)
 
 	#### E-step & M-step
-	EM.zⁿₖ = [Zⁿ(mix, point) for point ∈ Y];
+	EM.zⁿₖ = [Zⁿ(mix, point, β) for point ∈ Y];
 	for k ∈ 1:N_components
 		μₖ = mix.components[k].normal.μ
 		Σₖ = diag(mix.components[k].normal.Σ)
@@ -106,8 +115,10 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovaria
 	EM.converged = (abs(EM.score - prev_score) ≤ EM.tol)
 end
 
+update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovariance} = update!(EM, 1.0)
 
-function update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance}
+
+function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: FullCovariance}
 	mix = EM.mix
 	#μs = deepcopy(mix.μ1); μ2 = deepcopy(mix.μ2)
 	#σ1 = deepcopy(mix.σ1); σ2 = deepcopy(mix.σ2)
@@ -123,7 +134,7 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance}
 	N_data = length(Y)
 
 	#### E-step & M-step
-	EM.zⁿₖ = [Zⁿ(mix, point) for point ∈ Y];
+	EM.zⁿₖ = [Zⁿ(mix, point, β) for point ∈ Y];
 	for k ∈ 1:N_components
 		μₖ = mix.components[k].normal.μ
 		Σₖ = mix.components[k].normal.Σ
@@ -166,4 +177,6 @@ function update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance}
 	#@show (EM.score[1] - prev_score)
 	EM.converged = (abs(EM.score - prev_score) ≤ EM.tol)
 end
+
+update!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance} = update!(EM, 1.0)
 
