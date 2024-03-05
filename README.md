@@ -14,18 +14,23 @@ As we can see the standard Gaussian Mixture Model has its kernels avoid the edge
 Let's generate some random data from a known 2D truncated gaussian mixture model:
 
 ```julia
-# Quick Function to create truncated normal products
-TNormal(μ1,σ1,μ2,σ2) = product_distribution(
-                                            truncated(Normal(μ1,σ1),0,1),
-                                            truncated(Normal(μ2,σ2),0,1)
-)
-# Define weights and distributions in mixtures
-weights = [0.3,0.7]
-dists = [TNormal(0.1,0.4,0.8,0.5),TNormal(0.9,0.1,0.3,0.2)]
-X_dist = MixtureModel(dists,weights)
+using TruncatedGaussianMixtures
 
-# Generate 8000 samples from this distribution
-X = rand(X_dist,8000)
+# Lets generate some variables
+a = [0.0, 0.0]; b = [1.0, 1.0] # Lower and upper limits
+μ = [0.5, 0.0]; Σ = Diagonal([0.2, 0.8])
+dist = TruncatedMvNormal(MvNormal(μ, Σ), a, b)
+X = rand(dist, 8000)
+
+# Create the fit
+EM = fit_gmm(X, 2, a, b;   # data, n_kernels, lower, upper
+  cov=:diag,  # Choose between :diag and :full for diagonal or full covariances
+  tol=1e-2,   # tolerance for the stopping criteria.
+  MAX_REPS=100, # Maximum number of EM update steps
+  verbose=false,  # Verbose output usefull for debugging 
+  progress=true,  # Gives a progress bar to show the progress of the fit
+  responsibilities=false, # Returns the EM object as opposed to Distributions.jl object
+  block_structure=false) # One can specify a block structure for the covariances
 ```
 
 We can then use `fit_gmm_2D` , and provide it the data samples, number of components and the bounds of the truncated space. 
@@ -39,31 +44,29 @@ fit = fit_gmm(X, # Provided Data as a 2xN Matrix
  )
 ```
 
-This returns a Distributions.jl Mixture Model with parameters close to those that produced it (i.e. `X_dist`). `X_dist` is:
+## Annealing Schedules
+
+One can use annealing schedules to guide fits better, especially for flatter distributions. [Naim & Gildea](https://arxiv.org/abs/1206.6427) propose a deterministic anti-annealing mechanism that alows one to fit better when many of the gaussian components overlap (in the context of non-truncated GMM).
+
+An annealing schedule is a list $\beta_n$, such that it changes the responsibilities of the points for a given proposed GMM:
+$$
+w^{(n)}_{i k}=\frac{\left(\alpha_k^{(t)} P\left(x_i \mid z_i=k, \Theta^{(t)}\right)\right)^{\beta_n}}{\sum_{m=1}^K\left(\alpha_m^{(t)} P\left(x_i \mid z_i=m, \Theta^{(t)}\right)\right)^{\beta_n}}
+$$
+Here is $n$ is the number of EM steps made. The standard EM-algorithm is the case where $\beta_n = 1$
+
+### Usage
+
+In `TruncatedGaussianMixtures.jl` the way to add annealing schedules is by instantiating an annealing schedule object with the $\beta_n$ list we would like. For example:
 
 ```julia
-#=
-(prior = 0.3000): 
-(μ=0.1, σ=0.4); lower=0.0, upper=1.0)
-(μ=0.8, σ=0.5); lower=0.0, upper=1.0)
-
-(prior = 0.7000): 
-(μ=0.9, σ=0.1); lower=0.0, upper=1.0)
-(μ=0.3, σ=0.2); lower=0.0, upper=1.0)
-=#
+β = vcat((0.0:0.01:1.5), 1.5:(-0.01):1.0, ones(100))
+schedule = AnnealingSchedule(β)
 ```
 
-`fit` is:
+We can then use the schedule for fitting the TGMM
 
 ```julia
-#=
-(prior = 0.2891): 
-(μ=0.2756150943564681, σ=0.21148968263864146); lower=0.0, upper=1.0)
-(μ=0.6176228214141383, σ=0.26340762084394287); lower=0.0, upper=1.0)
-
-(prior = 0.7109): 
-(μ=0.8833948163051973, σ=0.0767981133208865); lower=0.0, upper=1.0)
-(μ=0.32396173230689124, σ=0.17881611583805454); lower=0.0, upper=1.0)
-=#
+fit_gmm(X, K, a, b, schedule; cov=:full, tol=1e-3, convergence=false)
 ```
 
+The `convergence=false` parameter prevents the fitting algorithm from stopping based on some convergence criteria and allows the whole schedule to run its course. 
