@@ -1,5 +1,7 @@
 # TruncatedGaussianMixtures.jl
- Allows one to fit a gaussian mixture model using Truncated Gaussian Kernels. Works only for Gaussians truncated to lie inside some box
+ Allows one to fit a gaussian mixture model using Truncated Gaussian Kernels. Works only for Gaussians truncated to lie inside some box. 
+
+> The algorithm is adapted from [this paper by Lee & Scott](https://www.sciencedirect.com/science/article/abs/pii/S0167947312001156), as well as the algorithm for computing the first two moments of a truncated gaussian with full covariances.
 
 ## Advantages
 
@@ -21,9 +23,13 @@ a = [0.0, 0.0]; b = [1.0, 1.0] # Lower and upper limits
 μ = [0.5, 0.0]; Σ = Diagonal([0.2, 0.8])
 dist = TruncatedMvNormal(MvNormal(μ, Σ), a, b)
 X = rand(dist, 8000)
+```
 
+Now to fit the data we use the `fit_gmm` function. Below is one method signature we will use with all the keyword arguments. We are going to ask it to fit 2 truncated gaussian components:
+
+```julia
 # Create the fit
-EM = fit_gmm(X, 2, a, b;   # data, n_kernels, lower, upper
+EM = fit_gmm(X, 2, a, b;   # data, n_components, lower, upper
   cov=:diag,  # Choose between :diag and :full for diagonal or full covariances
   tol=1e-2,   # tolerance for the stopping criteria.
   MAX_REPS=100, # Maximum number of EM update steps
@@ -33,20 +39,23 @@ EM = fit_gmm(X, 2, a, b;   # data, n_kernels, lower, upper
   block_structure=false) # One can specify a block structure for the covariances
 ```
 
-We can then use `fit_gmm_2D` , and provide it the data samples, number of components and the bounds of the truncated space. 
+This returns a Distributions.jl Mixture Model object (`Mixture`) with parameters close to those that produced it (i.e. `dist`). 
+
+We can then use `fit_gmm` , and provide it the data samples, number of components and the bounds of the truncated space, along with a covariance block structure we would like. 
 
 ```julia
 fit = fit_gmm(X, # Provided Data as a 2xN Matrix
     2; # Number of components to fit to
-    [0.0,0.0], # lower bounds of the truncation
-    [1.0,1.0], # upper bounds of the truncation
-  	cov=:diag  # Constrains the truncated mixtures to be diagonal
+    [0.0,0.0,0.0,0.0], # lower bounds of the truncation
+    [1.0,1.0,10.0,11.0]; # upper bounds of the truncation
+  	cov=:diag,  # Constrains the truncated mixtures to be diagonal
+  	block_structure=[0,0,1,1] #TGMM kernels may be correlated between dimension 3&4 and dimension 1&2, but dimension 1 and 2 may not correlate with dimension 3 and 4
  )
 ```
 
 ## Annealing Schedules
 
-One can use annealing schedules to guide fits better, especially for flatter distributions. [Naim & Gildea](https://arxiv.org/abs/1206.6427) propose a deterministic anti-annealing mechanism that alows one to fit better when many of the gaussian components overlap (in the context of non-truncated GMM).
+One can use annealing schedules to guide fits better, especially for flatter distributions - though the standard vanilla algorithm does a decent job as well. [Naim & Gildea](https://arxiv.org/abs/1206.6427) propose a deterministic anti-annealing mechanism that alows one to fit better when many of the gaussian components overlap (in the context of non-truncated GMM).
 
 An annealing schedule is a list $\beta_n$, such that it changes the responsibilities of the points for a given proposed GMM:
 $$
