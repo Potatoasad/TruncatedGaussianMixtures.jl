@@ -57,11 +57,15 @@ fit = fit_gmm(X, # Provided Data as a 2xN Matrix
 
 One can use annealing schedules to guide fits better, especially for flatter distributions - though the standard vanilla algorithm does a decent job as well. [Naim & Gildea](https://arxiv.org/abs/1206.6427) propose a deterministic anti-annealing mechanism that alows one to fit better when many of the gaussian components overlap (in the context of non-truncated GMM).
 
-An annealing schedule is a list $\beta_n$, such that it changes the responsibilities of the points for a given proposed GMM:
+An annealing schedule is a list $\beta_n$​, such that it changes the responsibilities of the points for a given proposed GMM:
+
+
 $$
 w^{(n)}_{i k}=\frac{\left(\alpha_k^{(t)} P\left(x_i \mid z_i=k, \Theta^{(t)}\right)\right)^{\beta_n}}{\sum_{m=1}^K\left(\alpha_m^{(t)} P\left(x_i \mid z_i=m, \Theta^{(t)}\right)\right)^{\beta_n}}
 $$
-Here is $n$ is the number of EM steps made. The standard EM-algorithm is the case where $\beta_n = 1$
+
+
+Here is $n$ indexes the EM step made. The standard EM-algorithm is the case where $\beta_n = 1$
 
 ### Usage
 
