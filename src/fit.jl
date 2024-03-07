@@ -47,7 +47,7 @@ function fit_gmm(X, K, a, b, S::AbstractSchedule; cov=:full, tol=1e-2, MAX_REPS=
 	if progress
 		progressbar = Progress(N)
 	end
-	@show N
+	#@show N
 	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure)
 	old_score = Inf
 	converge = false
