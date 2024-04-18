@@ -8,6 +8,7 @@ covariance_type(x::TruncatedMvNormal{FullNormal}) = FullCovariance
 covariance_type(x::MixtureModel) = covariance_type(x.components[1])
 
 mat2vecs(A) = [A[:,i] for i in 1:size(A,2)]
+weight_vector(N) = StatsBase.Weights(ones(N)./N)
 
 function initialize_like(AB::MixtureModel{A,B,TruncatedMvNormal{DiagNormal,T}}) where {A,B,T <: Real}
 	d = length(AB); K = n_components(AB)
@@ -43,9 +44,41 @@ function fix_zero_covariances(Σ::AbstractVector, a, b, N)
 	end
 end
 
-function initialize(X,K, ::FullCovariance)
-	Result = kmeans(X,K)
+
+compute_weights(weights::Nothing, N) = weight_vector(N)
+compute_weights(weights, N) = StatsBase.Weights(weights ./ weights.sum)
+
+function get_subset_mean_remainder(X, W)
+	D,N = size(X)
+	X_mean = ones(D)
+	W_sum = sum(W)
+	for d ∈ 1:D
+		X_mean[d] = sum( X[d,:] .* W ) / W_sum
+	end
+
+	X_remainder = ones(size(X))
+	N = size(X,2)
+	for i ∈ 1:N
+		X_remainder[:,i] .= X[:,i] - X_mean
+	end
+	X_remainder
+end
+
+function get_subset_covariances(rem,W)
+	D,N = size(rem)
+	cov = zeros(D,D)
+	for i ∈ 1:N
+		cov[:,:] += rem[:,i] * rem[:,i]' * W[i] / N
+	end
+	return cov
+end
+
+
+function initialize(X,K,::FullCovariance; weights=nothing)
 	N = size(X,2);
+	weights = compute_weights(weights, N)
+
+	Result = kmeans(X,K; weights=weights.values)
 	a,b = minimum(X, dims=2), maximum(X, dims=2);
 	a = reshape(a, length(a))
 	b = reshape(b, length(b))
@@ -56,20 +89,25 @@ function initialize(X,K, ::FullCovariance)
 	ηs = zeros(K)
 	means = Result.centers |> mat2vecs
 	for k ∈ 1:K
-		subset = @view X[:, z .== k ]
-		subset_mean_rem = subset .- mean(subset, dims=2)
+		subset = @view X[:, z .== k ]  # dxN_k
+		subset_weights = @view weights[z .== k]  # N_k
+		#subset_mean_rem = subset .- mean(subset, dims=2)
+		subset_mean_rem = get_subset_mean_remainder(subset, subset_weights)
 		μs[:, k] = means[k][:]
 		ηs[k] = length(subset[1,:])/size(X)[2]
-		Σs[:,:,k] = fix_zero_covariances((subset_mean_rem * subset_mean_rem') ./ length(subset[1,:]),a,b,N)
+		#Σs[:,:,k] = fix_zero_covariances((subset_mean_rem * subset_mean_rem') ./ length(subset[1,:]),a,b,N)
+		Σs[:,:,k] = fix_zero_covariances(get_subset_covariances(subset_mean_rem,subset_weights),a,b,N)
 		Σs[:,:,k] = @. (Σs[:,:,k] + Σs[:,:,k]')/2
 		#println(Σs[:,:,k])
 	end
 	μs,Σs,ηs
 end
 
-function initialize(X,K, ::DiagonalCovariance)
-	Result = kmeans(X,K)
+function initialize(X,K, ::DiagonalCovariance; weights=nothing)
 	N = size(X,2);
+	weights = compute_weights(weights, N)
+
+	Result = kmeans(X,K; weights=weights.values)
 	a,b = minimum(X, dims=2), maximum(X, dims=2);
 	a = reshape(a, length(a))
 	b = reshape(b, length(b))
@@ -80,11 +118,14 @@ function initialize(X,K, ::DiagonalCovariance)
 	ηs = zeros(K)
 	means = Result.centers |> mat2vecs
 	for k ∈ 1:K
-		subset = @view X[:, z .== k ]
-		subset_mean_rem = subset .- mean(subset, dims=2)
+		subset = @view X[:, z .== k ]  # dxN_k
+		subset_weights = @view weights[z .== k]  # N_k
+		#subset = @view X[:, z .== k ]
+		subset_mean_rem = get_subset_mean_remainder(subset, subset_weights)
+		#subset_mean_rem = subset .- mean(subset, dims=2)
 		μs[:,k] = means[k][:]
 		ηs[k] = length(subset[1,:])/size(X)[2]
-		Σs[:,k] = fix_zero_covariances(diag((subset_mean_rem * subset_mean_rem') ./ length(subset[1,:])),a,b,N)
+		Σs[:,k] = fix_zero_covariances(diag(get_subset_covariances(subset_mean_rem,subset_weights)),a,b,N)
 	end
 	μs,Σs,ηs
 end
@@ -99,11 +140,12 @@ function make_mixture(μs::Array{T,2}, Σs::Array{T,2}, ηs::Array{T,1}, a::Arra
 	MixtureModel(dists, ηs./sum(ηs))
 end
 
-function initialize(X,N, a, b; cov=:diag)
+function initialize(X,N, a, b; cov=:diag, weights=nothing)
+	#weights = compute_weights(weights, size(X,2))
 	if cov == :diag
-		μs,Σs,ηs = initialize(X,N, DiagonalCovariance())
+		μs,Σs,ηs = initialize(X,N, DiagonalCovariance(), weights=weights)
 	elseif cov == :full
-		μs,Σs,ηs = initialize(X,N, FullCovariance())
+		μs,Σs,ηs = initialize(X,N, FullCovariance(), weights=weights)
 	end
 	#w = rand(N)
 	#μ1,σ1,μ2,σ2,η = (rand(N),rand(N),rand(N),rand(N),w./(sum(w)))

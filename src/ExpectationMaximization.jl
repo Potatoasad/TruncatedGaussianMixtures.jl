@@ -1,5 +1,5 @@
 
-mutable struct ExpectationMaximization{CVS <: AbstractCovarianceStructure, L, T, K}
+mutable struct ExpectationMaximization{CVS <: AbstractCovarianceStructure, L, T, K, S}
 	data::L
 	mix::T
 	tol::Float64
@@ -8,14 +8,19 @@ mutable struct ExpectationMaximization{CVS <: AbstractCovarianceStructure, L, T,
 	converged::Bool
 	cov_type::CVS
 	block_structure::Vector{Int64}
+	weights::S
 end
 
 fixtype(x) = x;
 fixtype(x::Matrix) = mat2vecs(x);
 	
-ExpectationMaximization(data, mix, tol, znk) = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), zeros(Int64, length(mix)))
+ExpectationMaximization(data, mix, tol, znk) = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), zeros(Int64, length(mix)), weight_vector(length(fixtype(data))))
 ExpectationMaximization(data, mix, tol, znk, block_structure) = ExpectationMaximization(data, mix, tol, znk) # Ignore by default
-ExpectationMaximization(data, mix, tol, znk, block_structure::Vector{Int64}) = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), block_structure)
+ExpectationMaximization(data, mix, tol, znk, block_structure::Vector{Int64}) = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), block_structure, weight_vector(length(fixtype(data))))
+
+ExpectationMaximization(data, mix, tol, znk, weights::L) where {L <: StatsBase.AbstractWeights} = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), zeros(Int64, length(mix)), Weights(weights ./ weights.sum))
+ExpectationMaximization(data, mix, tol, znk, block_structure, weights::L) where {L <: StatsBase.AbstractWeights} = ExpectationMaximization(data, mix, tol, znk, Weights(weights ./ weights.sum)) # Ignore by default
+ExpectationMaximization(data, mix, tol, znk, block_structure::Vector{Int64}, weights::L) where {L <: StatsBase.AbstractWeights} = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), block_structure, Weights(weights ./ weights.sum))
 
 covariance_type(x::ExpectationMaximization{CVS}) where {CVS <: AbstractCovarianceStructure} = CVS
 
@@ -40,11 +45,13 @@ function Zⁿ(x::MixtureModel, datapoint::Vector, β::Float64)
 	return exp.(unnormalized .- LogExpFunctions.logsumexp(unnormalized))
 end
 
-function ExpectationMaximization(data, n_comps; cov=:diag, a=[0.0,0.0], b=[1.0,1.0], tol=1e-16, block_structure=false, β=1.0)
-	init = initialize(data, n_comps, a, b; cov=cov)
+function ExpectationMaximization(data, n_comps; cov=:diag, a=[0.0,0.0], b=[1.0,1.0], tol=1e-16, block_structure=false, β=1.0, weights=nothing)
+	weights = compute_weights(weights, length(fixtype(data)))
+	#print(weights)
+	init = initialize(data, n_comps, a, b; cov=cov, weights=weights)
 	data = fixtype(data)
 	zⁿₖ = [Zⁿ(init, point) for point ∈ data];
-	ExpectationMaximization(data, init, tol, zⁿₖ, block_structure)
+	ExpectationMaximization(data, init, tol, zⁿₖ, block_structure, weights)
 end
 
 function score(EM::ExpectationMaximization)
@@ -73,6 +80,7 @@ function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: Di
 
 	#### E-step & M-step
 	EM.zⁿₖ = [Zⁿ(mix, point, β) for point ∈ Y];
+	W = EM.weights .* N_data
 	for k ∈ 1:N_components
 		μₖ = mix.components[k].normal.μ
 		Σₖ = diag(mix.components[k].normal.Σ)
@@ -80,17 +88,17 @@ function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: Di
 		NewKernels = [truncated(Normal(0.0,√(Σₖ[i])),a[i]-μₖ[i], b[i]-μₖ[i]) for i ∈ 1:d]
 
 		# η
-		η[k] = mean(EM.zⁿₖ[n][k] for n ∈ 1:N_data)
+		η[k] = mean(EM.zⁿₖ[n][k] * W[n] for n ∈ 1:N_data)
 		normalization = η[k]*N_data
 
 		# μ
 		mₖ = mean.(NewKernels)
-		μ_vec = sum(EM.zⁿₖ[n][k]*Y[n] for n ∈ 1:N_data)/(normalization) .- mₖ
+		μ_vec = sum(EM.zⁿₖ[n][k]*Y[n]* W[n] for n ∈ 1:N_data)/(normalization) .- mₖ
 
 		# Σ
 		Ms = var.(NewKernels) .+ mₖ.^2
 		Hₖ = Σₖ .- Ms
-		Σʼ = sum(EM.zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
+		Σʼ = sum(EM.zⁿₖ[n][k]* W[n]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
 		Σʼdiag = diag(Σʼ) .+ Hₖ
 
 		# If we find a particular kernel with only one point, we set it's weight to zero
@@ -135,6 +143,7 @@ function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: Fu
 
 	#### E-step & M-step
 	EM.zⁿₖ = [Zⁿ(mix, point, β) for point ∈ Y];
+	W = EM.weights.* N_data
 	for k ∈ 1:N_components
 		μₖ = mix.components[k].normal.μ
 		Σₖ = mix.components[k].normal.Σ
@@ -143,17 +152,17 @@ function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: Fu
 		M1,M2 = moments(NewKernel)
 		
 		# η
-		η[k] = mean(EM.zⁿₖ[n][k] for n ∈ 1:N_data)
+		η[k] = mean(EM.zⁿₖ[n][k]* W[n] for n ∈ 1:N_data)
 		normalization = η[k]*N_data
 
 		# μ
 		mₖ = M1
-		μ_vec = sum(EM.zⁿₖ[n][k]*Y[n] for n ∈ 1:N_data)/(normalization) .- mₖ
+		μ_vec = sum(EM.zⁿₖ[n][k]*Y[n]* W[n] for n ∈ 1:N_data)/(normalization) .- mₖ
 
 
 		# Σ
 		Hₖ = Σₖ .- M2
-		Σʼ = sum(EM.zⁿₖ[n][k]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
+		Σʼ = sum(EM.zⁿₖ[n][k]* W[n]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
 		Σʼ .= Σʼ .+ Hₖ
 		# Impose hermiticity if lost:
 		Σʼ = (Σʼ .+ Σʼ')./2

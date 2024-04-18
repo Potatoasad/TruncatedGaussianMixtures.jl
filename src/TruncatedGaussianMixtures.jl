@@ -8,6 +8,8 @@ using LinearAlgebra
 using Base: eltype, length
 using Distributions: _rand!, _logpdf, sampler, AbstractRNG
 using MvNormalCDF:mvnormcdf
+import StatsBase
+import StatsBase: Weights
 using InvertedIndices
 using ProgressMeter
 

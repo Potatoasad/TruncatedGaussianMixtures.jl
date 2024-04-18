@@ -1,11 +1,11 @@
 import TruncatedGaussianMixtures
 using ProgressMeter
 
-function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false)
+function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false, weights=nothing)
 	if progress
 		progressbar = Progress(MAX_REPS)
 	end
-	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure)
+	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure, weights=weights)
 	old_score = Inf
 	converge = false
 	for i ∈ 1:10
@@ -42,13 +42,13 @@ function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, p
 end
 
 
-function fit_gmm(X, K, a, b, S::AbstractSchedule; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false, convergence=false)
+function fit_gmm(X, K, a, b, S::AbstractSchedule; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false, convergence=false, weights=nothing)
 	N = length(iterator(S))
 	if progress
 		progressbar = Progress(N)
 	end
 	#@show N
-	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure)
+	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure, weights=weights)
 	old_score = Inf
 	converge = false
 	for β ∈ S

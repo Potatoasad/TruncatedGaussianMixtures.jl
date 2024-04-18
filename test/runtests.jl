@@ -8,7 +8,7 @@ function generate_random_mixture(;d = 2, K=3, cov=:full)
 	a = zeros(d)
 	b = scaling
 	
-	rand_rotation = qr(randn(d,d)).Q
+	rand_rotation = qr(randn(d,d)).R
 	
 	weights = rand(Dirichlet(30.0.*ones(K)))
 	comps = TruncatedMvNormal[]
@@ -33,7 +33,7 @@ function KLDivergence(d1, d2; N_samps=8_000)
 	0.5*(k1+k2)
 end
 
-function test_result_pair(;d=2, K=3, cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false)
+function test_result_pair(;d=2, K=3, cov=:full, tol=1e-2, MAX_REPS=200, verbose=false, progress=false)
 	test_mixture = generate_random_mixture(d=d, K=K, cov=cov);
 	fitted_mixture = fit_gmm(rand(test_mixture,8000),
 							length(test_mixture.components),
