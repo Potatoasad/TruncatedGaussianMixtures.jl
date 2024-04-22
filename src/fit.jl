@@ -1,7 +1,11 @@
 import TruncatedGaussianMixtures
 using ProgressMeter
 
+str_to_symbol(x) = x
+str_to_symbol(x::AbstractString) = Symbol(x)
+
 function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false, weights=nothing)
+	cov = str_to_symbol(cov)
 	if progress
 		progressbar = Progress(MAX_REPS)
 	end
@@ -43,6 +47,7 @@ end
 
 
 function fit_gmm(X, K, a, b, S::AbstractSchedule; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false, convergence=false, weights=nothing)
+	cov = str_to_symbol(cov)
 	N = length(iterator(S))
 	if progress
 		progressbar = Progress(N)

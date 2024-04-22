@@ -6,8 +6,9 @@ using StatsBase: Weights
 using CairoMakie
 
 function generate_random_mixture(;d = 2, K=3, cov=:full)
-	scaling = rand(0.5:0.1:10.0, d);
-	diag_scaling = rand(0.5:0.1:6.0)	
+	#scaling = rand(0.5:0.1:10.0, d);
+	scaling = ones(d)
+	diag_scaling = rand(0.1:0.1:1.0) #rand(0.5:0.1:6.0)	
 	a = zeros(d)
 	b = scaling
 	
@@ -22,7 +23,6 @@ function generate_random_mixture(;d = 2, K=3, cov=:full)
 		end
 		Σ = rand_rotation' * diagm(rand(d).*diag_scaling.*1.0) * rand_rotation;
 		Σ .= (Σ + Σ')/2
-		print(Σ)
 		push!(comps, TruncatedMvNormal(MvNormal(μ,Σ),a,b))
 	end
 	
@@ -59,23 +59,26 @@ function get_original_and_weighted_df(mix, func; N=8_000)
 	df_original, df
 end
 
-weight_func = ((x...) -> x[2]^2)
+weight_func = ((x...) -> (1+x[2]))
 
 function test_result_pair(;d=2, K=3, cov=:full, tol=1e-6, MAX_REPS=500, verbose=false, progress=false)
 	test_mixture = generate_random_mixture(d=d, K=K, cov=cov);
 	df = generate_weighted_samples(test_mixture, weight_func;N=8_000)
 	non_weight_columns = [col for col in names(df) if col != "weight"]
 	(samples, weights) = (collect(Matrix(df[!, non_weight_columns])'),  df[!, :weight])
+	β = vcat((0.0:0.01:1.5), 1.5:(-0.01):1.0, ones(MAX_REPS))
+	schedule = AnnealingSchedule(β)
 	fitted_mixture = fit_gmm(samples,
 							length(test_mixture.components),
 							test_mixture.components[1].a,
 							test_mixture.components[1].b,
+							schedule,
 							cov=cov, verbose=verbose, tol=tol,MAX_REPS=MAX_REPS, progress=progress, weights=Weights(weights))
 	test_mixture, fitted_mixture
 end
 
 
-test, fit = test_result_pair(d=2,K=2,cov=:full, progress=false, tol=1e-8, MAX_REPS=100)
+test, fit = test_result_pair(d=5,K=5,cov=:diag, progress=true, tol=1e-6, MAX_REPS=1000, verbose=false)
 
 #pp = Plots.plot()
 #Plots.scatter!(pp, (let x=rand(test, 8000); x[1,:], x[2,:] end)..., alpha=0.1, markerstrokealpha=0.0, color=:red, label="original")
