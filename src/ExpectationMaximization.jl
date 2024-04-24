@@ -18,9 +18,9 @@ ExpectationMaximization(data, mix, tol, znk) = ExpectationMaximization(fixtype(d
 ExpectationMaximization(data, mix, tol, znk, block_structure) = ExpectationMaximization(data, mix, tol, znk) # Ignore by default
 ExpectationMaximization(data, mix, tol, znk, block_structure::Vector{Int64}) = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), block_structure, weight_vector(length(fixtype(data))))
 
-ExpectationMaximization(data, mix, tol, znk, weights::L) where {L <: StatsBase.AbstractWeights} = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), zeros(Int64, length(mix)), Weights(weights ./ weights.sum))
-ExpectationMaximization(data, mix, tol, znk, block_structure, weights::L) where {L <: StatsBase.AbstractWeights} = ExpectationMaximization(data, mix, tol, znk, Weights(weights ./ weights.sum)) # Ignore by default
-ExpectationMaximization(data, mix, tol, znk, block_structure::Vector{Int64}, weights::L) where {L <: StatsBase.AbstractWeights} = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), block_structure, Weights(weights ./ weights.sum))
+ExpectationMaximization(data, mix, tol, znk, weights::L) where {L <: StatsBase.AbstractWeights} = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), zeros(Int64, length(mix)), Weights(weights ./ sum(weights)))
+ExpectationMaximization(data, mix, tol, znk, block_structure, weights::L) where {L <: StatsBase.AbstractWeights} = ExpectationMaximization(data, mix, tol, znk, Weights(weights ./ sum(weights))) # Ignore by default
+ExpectationMaximization(data, mix, tol, znk, block_structure::Vector{Int64}, weights::L) where {L <: StatsBase.AbstractWeights} = ExpectationMaximization(fixtype(data),mix, tol, znk, 0.0, false, covariance_type(mix)(), block_structure, Weights(weights ./ sum(weights)))
 
 covariance_type(x::ExpectationMaximization{CVS}) where {CVS <: AbstractCovarianceStructure} = CVS
 

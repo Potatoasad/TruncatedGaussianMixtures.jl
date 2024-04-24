@@ -12,15 +12,18 @@ import StatsBase
 import StatsBase: Weights
 using InvertedIndices
 using ProgressMeter
+using DataFrames
 
 include("TruncatedMvNormal/loglikelihood.jl")
 include("TruncatedMvNormal/moments.jl")
 include("initialize.jl")
 include("ExpectationMaximization.jl")
 include("annealing_schedule.jl")
+include("Transformations/AbstractTransformation.jl")
 include("fit.jl")
 
 
 export update!, ExpectationMaximization, TruncatedMvNormal, fit_gmm, initialize, AnnealingSchedule
+export AbstractTransformation, Transformation, forward, inverse, domain_columns, image_columns
 
 end # module TruncatedGaussianMixtures
