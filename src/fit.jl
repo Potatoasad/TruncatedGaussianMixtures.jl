@@ -105,7 +105,7 @@ end
 function fit_gmm(df::DataFrame, K, a, b, Tr::AbstractTransformation; kwargs...)
 	df2 = forward(Tr, df)
 	EM = fit_gmm(collect(Matrix(df2[!, image_columns(Tr)])'), K, a, b; kwargs..., responsibilities=true)
-	df_out = DataFrame(collect(hcat(EM.data...)'), names(df))
+	df_out = DataFrame(collect(hcat(EM.data...)'), image_columns(Tr))
 
 	## Make categorial assignment to different components of TGMM and output the dataframe with those assignments. 
 	## We can then later use those to create groups
