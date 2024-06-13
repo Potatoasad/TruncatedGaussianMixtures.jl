@@ -24,6 +24,6 @@ include("fit.jl")
 
 
 export update!, ExpectationMaximization, TruncatedMvNormal, fit_gmm, initialize, AnnealingSchedule
-export AbstractTransformation, Transformation, forward, inverse, domain_columns, image_columns
+export AbstractTransformation, Transformation, forward, inverse, domain_columns, image_columns, sample
 
 end # module TruncatedGaussianMixtures

@@ -85,11 +85,11 @@ end
 
 
 
-function sample(df::AbstractDataFrame, N::Int)
+function Distributions.sample(df::AbstractDataFrame, N::Int)
 	df[rand(1:nrow(df),N),:]
 end
 
-function sample(df::AbstractDataFrame, N::Int, columns)
+function Distributions.sample(df::AbstractDataFrame, N::Int, columns)
 	df[rand(1:nrow(df),N), columns]
 end
 
