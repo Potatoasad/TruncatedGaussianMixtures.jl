@@ -14,6 +14,7 @@ using InvertedIndices
 using ProgressMeter
 using DataFrames
 
+include("block_structure.jl")
 include("TruncatedMvNormal/loglikelihood.jl")
 include("TruncatedMvNormal/moments.jl")
 include("initialize.jl")

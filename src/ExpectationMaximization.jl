@@ -45,6 +45,28 @@ function Zⁿ(x::MixtureModel, datapoint::Vector, β::Float64)
 	return exp.(unnormalized .- LogExpFunctions.logsumexp(unnormalized))
 end
 
+function Zⁿ!(unnormalized, x::MixtureModel, datapoint::Vector)
+	N_kernels = length(x.components)
+	for k ∈ 1:N_kernels
+		unnormalized[k] = log(x.prior.p[k]) + Distributions.logpdf(x.components[k], datapoint)
+	end
+	log_norm = LogExpFunctions.logsumexp(unnormalized)
+	for k ∈ 1:N_kernels
+		unnormalized[k] = exp(unnormalized[k] - log_norm)
+	end
+end
+
+function Zⁿ!(unnormalized, x::MixtureModel, datapoint::Vector, β::Float64)
+	N_kernels = length(x.components)
+	for k ∈ 1:N_kernels
+		unnormalized[k] = log(x.prior.p[k]) + β * Distributions.logpdf(x.components[k], datapoint)
+	end
+	log_norm = LogExpFunctions.logsumexp(unnormalized)
+	for k ∈ 1:N_kernels
+		unnormalized[k] = exp(unnormalized[k] - log_norm)
+	end
+end
+
 function ExpectationMaximization(data, n_comps; cov=:diag, a=[0.0,0.0], b=[1.0,1.0], tol=1e-16, block_structure=false, β=1.0, weights=nothing)
 	weights = compute_weights(weights, length(fixtype(data)))
 	#print(weights)
@@ -79,7 +101,10 @@ function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: Di
 	N_data = length(Y)
 
 	#### E-step & M-step
-	EM.zⁿₖ = [Zⁿ(mix, point, β) for point ∈ Y];
+	#EM.zⁿₖ = [Zⁿ(mix, point, β) for point ∈ Y];
+	for n ∈ 1:length(Y)
+		Zⁿ!(EM.zⁿₖ[n], mix, Y[n], β)
+	end
 	W = EM.weights .* N_data
 	for k ∈ 1:N_components
 		μₖ = mix.components[k].normal.μ
@@ -126,7 +151,7 @@ end
 update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovariance} = update!(EM, 1.0)
 
 
-function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: FullCovariance}
+function update_old!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: FullCovariance}
 	mix = EM.mix
 	#μs = deepcopy(mix.μ1); μ2 = deepcopy(mix.μ2)
 	#σ1 = deepcopy(mix.σ1); σ2 = deepcopy(mix.σ2)
@@ -150,6 +175,82 @@ function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: Fu
 		NewKernel = TruncatedMvNormal(MvNormal(zero(μₖ), Σₖ), a .- μₖ, b .- μₖ)
 
 		M1,M2 = moments(NewKernel)
+		
+		# η
+		η[k] = mean(EM.zⁿₖ[n][k]* W[n] for n ∈ 1:N_data)
+		normalization = η[k]*N_data
+
+		# μ
+		mₖ = M1
+		μ_vec = sum(EM.zⁿₖ[n][k]*Y[n]* W[n] for n ∈ 1:N_data)/(normalization) .- mₖ
+
+
+		# Σ
+		Hₖ = Σₖ .- M2
+		Σʼ = sum(EM.zⁿₖ[n][k]* W[n]*(Y[n]-μ_vec)*(Y[n]-μ_vec)' for n ∈ 1:N_data)/normalization
+		Σʼ .= Σʼ .+ Hₖ
+		# Impose hermiticity if lost:
+		Σʼ = (Σʼ .+ Σʼ')./2
+
+		for i ∈ 1:d
+			μs[i,k] = μ_vec[i]
+			for j ∈ 1:d
+				# Remove correlations that should not exist
+				if EM.block_structure[i] == EM.block_structure[j]
+					Σs[i,j,k] = Σʼ[i,j]
+				else
+					Σs[i,j,k] = zero(Σʼ[i,j])
+				end
+			end
+		end
+	end
+	EM.mix = make_mixture(μs, Σs, η, a, b)
+
+	#### Evaluation Check
+	EM.score = score(EM)
+	#@show (EM.score[1] - prev_score)
+	EM.converged = (abs(EM.score - prev_score) ≤ EM.tol)
+end
+
+update_old!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance} = update_old!(EM, 1.0)
+
+
+
+
+function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: FullCovariance}
+	mix = EM.mix
+	bs = CovarianceBlockStructure(EM.block_structure)
+	#μs = deepcopy(mix.μ1); μ2 = deepcopy(mix.μ2)
+	#σ1 = deepcopy(mix.σ1); σ2 = deepcopy(mix.σ2)
+	#η = deepcopy(mix.η);
+	μs, Σs, η = initialize_like(mix)
+
+	Y = EM.data;
+	prev_score = EM.score
+	
+	a = EM.mix.components[1].a; b = EM.mix.components[1].b
+	d = length(mix)
+	N_components = length(η)
+	N_data = length(Y)
+
+	#### E-step & M-step
+	for n ∈ 1:length(Y)
+		Zⁿ!(EM.zⁿₖ[n], mix, Y[n], β)
+	end
+	#EM.zⁿₖ = [Zⁿ(mix, point, β) for point ∈ Y];
+	W = EM.weights.* N_data
+
+	M1 = zeros(length(a))
+	M2 = zeros(length(a), length(a))
+	throwaway = zeros(length(a))
+
+	for k ∈ 1:N_components
+		μₖ = mix.components[k].normal.μ
+		Σₖ = mix.components[k].normal.Σ
+		#NewKernel = TruncatedMvNormal(MvNormal(zero(μₖ), Σₖ), a .- μₖ, b .- μₖ)
+
+		#M1,M2 = moments(NewKernel)
+		EXᵢXⱼ!(M1, M2, throwaway, Σₖ, a .- μₖ, b .- μₖ, bs)
 		
 		# η
 		η[k] = mean(EM.zⁿₖ[n][k]* W[n] for n ∈ 1:N_data)
