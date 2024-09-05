@@ -1,40 +1,45 @@
 import TruncatedGaussianMixtures
 using ProgressMeter
 using DataFrames
+using ProgressLogging
 
 str_to_symbol(x) = x
 str_to_symbol(x::AbstractString) = Symbol(x)
 
-function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false, weights=nothing)
+function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false, weights=nothing, unbiasing=:default)
 	cov = str_to_symbol(cov)
 	if progress
 		progressbar = Progress(MAX_REPS)
 	end
-	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure, weights=weights)
+	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure, weights=weights, unbiasing=unbiasing)
 	old_score = Inf
 	converge = false
-	for i ∈ 1:10
+	@withprogress name="iterating" for i ∈ 1:10
 		update!(EM)
-		converge = (abs(EM.score - old_score)/abs(old_score)) ≤ tol
+		#converge = (abs(EM.score - old_score)/abs(old_score)) ≤ tol
+		converge = (abs(EM.score - old_score)) ≤ tol
 		if verbose
 			println("Score: ", EM.score, "   |ΔScore|/|Score| = ", abs(EM.score - old_score)/abs(old_score), "  converged = ", converge)
 		end
 		old_score = EM.score
 		if progress
 			next!(progressbar)
+			@logprogress i
 		end
 	end
 	reps = 10;
-	while (!converge) && (reps < MAX_REPS)
+	@withprogress name="iterating" while (!converge) && (reps < MAX_REPS)
 		update!(EM)
 		reps += 1
-		converge = (abs(EM.score - old_score)/abs(old_score)) ≤ tol
+		#converge = (abs(EM.score - old_score)/abs(old_score)) ≤ tol
+		converge = (abs(EM.score - old_score)) ≤ tol
 		if verbose
 			println("Score: ", EM.score, "   |ΔScore|/|Score| = ", abs(EM.score - old_score)/abs(old_score), "  converged = ", converge)
 		end
 		old_score = EM.score
 		if progress
 			next!(progressbar)
+			@logprogress reps
 		end
 	end
 	if progress
@@ -47,19 +52,21 @@ function fit_gmm(X, K, a, b; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, p
 end
 
 
-function fit_gmm(X, K, a, b, S::AbstractSchedule; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false, convergence=false, weights=nothing)
+function fit_gmm(X, K, a, b, S::AbstractSchedule; cov=:full, tol=1e-2, MAX_REPS=100, verbose=false, progress=false, responsibilities=false, block_structure=false, convergence=false, weights=nothing, unbiasing=:default)
 	cov = str_to_symbol(cov)
 	N = length(iterator(S))
 	if progress
 		progressbar = Progress(N)
 	end
 	#@show N
-	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure, weights=weights)
+	EM = ExpectationMaximization(X,K, a=a, b=b, cov=cov, block_structure=block_structure, weights=weights, unbiasing=unbiasing)
 	old_score = Inf
 	converge = false
-	for β ∈ S
+	reps = 0
+	@withprogress name="iterating" for β ∈ S
 		TruncatedGaussianMixtures.update!(EM, β)
-		converge = (abs(EM.score - old_score)/abs(old_score)) ≤ tol
+		#converge = (abs(EM.score - old_score)/abs(old_score)) ≤ tol
+		converge = (abs(EM.score - old_score)) ≤ tol
 		if convergence
 			if converge
 				break
@@ -71,7 +78,9 @@ function fit_gmm(X, K, a, b, S::AbstractSchedule; cov=:full, tol=1e-2, MAX_REPS=
 		old_score = EM.score
 		if progress
 			next!(progressbar)
+			@logprogress reps
 		end
+		reps += 1
 	end
 	if progress
 		finish!(progressbar)
@@ -81,7 +90,6 @@ function fit_gmm(X, K, a, b, S::AbstractSchedule; cov=:full, tol=1e-2, MAX_REPS=
 	end
 	EM.mix
 end
-
 
 
 

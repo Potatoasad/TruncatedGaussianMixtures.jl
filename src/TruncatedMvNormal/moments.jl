@@ -20,7 +20,7 @@ end
 #x(x) = exp(logsumexp([log(x),log(10*eps(x))])*(1/2));
 #√(x) = √(x);
 
-function F(k::Int, x::Real, Σ::AbstractMatrix, a::AbstractVector{T}, b::AbstractVector{T}) where {T <: Real}
+function F(k::Int, x::Real, Σ::AbstractMatrix, a::AbstractVector{T}, b::AbstractVector{L}) where {T <: Real, L <: Real}
     Σ₋ₖₖ_ = Σ₋ₖₖ(k, Σ)
     μ₋ₖₖ_ = μ₋ₖₖ(k, x, Σ)
     
@@ -167,9 +167,9 @@ function EXᵢXⱼ!(M1s, M2s, throwaway, Σ, a, b, bs::CovarianceBlockStructure)
 end
 
 function EXᵢXⱼ(Σ, a, b, bs::CovarianceBlockStructure)
-    M2s = zeros(size(Σ))
-    M1s = zeros(size(a))
-    throwaway = zeros(size(a))
+    M2s = zeros(eltype(Σ), size(Σ))
+    M1s = zeros(eltype(a), size(a))
+    throwaway = zeros(eltype(a), size(a))
     EXᵢXⱼ!(M1s, M2s, throwaway, Σ, a, b, bs)
     M2s
 end

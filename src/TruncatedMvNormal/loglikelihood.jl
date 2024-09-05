@@ -59,6 +59,7 @@ function Distributions.insupport(d::TruncatedMvNormal, x::AbstractMatrix)
 	return inside
 end
 
+"""
 # Naive implementation of sampling from normal
 function Distributions._rand!(rng::AbstractRNG, d::TruncatedMvNormal, x::AbstractArray{T}) where {T <: Real}
 	for i ∈ 1:size(x,2)
@@ -71,6 +72,46 @@ function Distributions._rand!(rng::AbstractRNG, d::TruncatedMvNormal, x::Abstrac
 		x[:,i] = val
 	end
 	x
+end
+"""
+
+
+# Fast but innacurate implementation of sampling from normal coupled with some rejection sampling
+function Distributions._rand!(rng::AbstractRNG, d::TruncatedMvNormal, x::AbstractArray{T}) where {T <: Real}
+    if d.logtp > -3.0
+        for i ∈ 1:size(x,2)
+            accepted = false
+            val = zeros(eltype(d),length(d))
+            while !accepted
+                val = rand(rng, d.normal)
+                accepted = Distributions.insupport(d, val)
+            end
+            x[:,i] = val
+        end
+    else
+        dists = diagnormal_dists(d)
+		for i ∈ 1:size(x,2)
+			accepted = false
+			val = zeros(eltype(d),length(d))
+			c = 1.4;
+			while !accepted
+				diaglogpdf = zero(eltype(d))
+				for k ∈ 1:length(d)
+		           Distributions._rand!(rng, dists[k], @view(val[k]))
+					diaglogpdf += logpdf(dists[k], val[k])
+		        end
+				fulllogpdf = logpdf(d, val)
+				ratio = exp(fulllogpdf - diaglogpdf)
+				u = rand()
+				if u < ratio/c
+					accepted = true
+					c = max(c, ratio)
+				end
+			end
+			x[:,i] = val
+		end
+    end
+    x
 end
 
 # Specific implementation of sampling from diagonal TruncatedMvNormal
@@ -97,7 +138,7 @@ function Distributions._rand!(rng::AbstractRNG, d::TruncatedMvNormal{L}, x::Abst
     x
 end
 
-function Distributions._logpdf(d::TruncatedMvNormal, x::Vector)
+function Distributions._logpdf(d::TruncatedMvNormal, x::AbstractVector)
 	if !Distributions.insupport(d,x)
 		return typemin(eltype(d))
 	end
