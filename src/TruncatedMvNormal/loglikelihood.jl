@@ -43,7 +43,7 @@ Distributions.sampler(d::TruncatedMvNormal) = d
 	
 Base.eltype(d::TruncatedMvNormal) = Base.eltype(d.normal)
 
-function Distributions.insupport(d::TruncatedMvNormal, x::Vector)
+function Distributions.insupport(d::TruncatedMvNormal, x::AbstractVector)
 	inside = true
 	for i ∈ 1:length(d)
 		inside = inside && (d.a[i] ≤ x[i] ≤ d.b[i])
@@ -52,6 +52,14 @@ function Distributions.insupport(d::TruncatedMvNormal, x::Vector)
 end
 
 function Distributions.insupport(d::TruncatedMvNormal, x::AbstractMatrix)
+	inside = zeros(Bool, size(x,2))
+	for i ∈ 1:size(x,2)
+		inside[i] = Distributions.insupport(d, x[:,i])
+	end
+	return inside
+end
+
+function Distributions.insupport(d::TruncatedMvNormal, x::AbstractArray)
 	inside = zeros(Bool, size(x,2))
 	for i ∈ 1:size(x,2)
 		inside[i] = Distributions.insupport(d, x[:,i])
@@ -149,6 +157,14 @@ function Distributions._logpdf(d::TruncatedMvNormal, x::AbstractMatrix)
 	p = zeros(size(x,2))
 	for i ∈ 1:size(x,2)
 		p[i] = Distributions._logpdf(d, x[:,i])
+	end
+	p
+end
+
+function Distributions._logpdf(d::TruncatedMvNormal, x::AbstractArray)
+	p = zeros(size(x)[2:end])
+	for z ∈ CartesianIndices(size(p))
+		p[z] = Distributions._logpdf(d, x[:,z])
 	end
 	p
 end

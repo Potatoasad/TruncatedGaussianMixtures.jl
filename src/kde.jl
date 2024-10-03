@@ -1,4 +1,4 @@
-function fit_kde(df_in::DataFrame, a, b, cols, bs::BoundaryUnbiasing; subsampling=nothing, full_subsampling=nothing, weights=nothing, fix=true, progress=true)
+function fit_kde(df_in::DataFrame, a, b, cols, bs::BoundaryUnbiasing; subsampling=nothing, full_subsampling=nothing, weights=nothing, fix=true, progress=true, bandwidth_scale=nothing)
     N_data = nrow(df_in)
 
     if full_subsampling == nothing
@@ -11,14 +11,19 @@ function fit_kde(df_in::DataFrame, a, b, cols, bs::BoundaryUnbiasing; subsamplin
         N_data = nrow(df)
     end
 
-    subsampling = (subsampling == nothing) ? N_data :  subsampling
+    #subsampling = (subsampling == nothing) ? N_data :  subsampling
+    if subsampling == nothing
+        indices = 1:N_data
+    else
+        indices = rand(1:N_data, subsampling);
+    end
     W = (weights == nothing) ? weight_vector(N_data) : weights
 
-    indices = rand(1:N_data, subsampling);
+   
     
 
     X = fixtype(Matrix(df[indices, cols])')
-    data = BoundaryUnbiasedData(X, a, b, bs)
+    data = BoundaryUnbiasedData(X, a, b, bs; bandwidth_scale=bandwidth_scale)
 
     N = size(data.μ,1)
     init_kde = MixtureModel([TruncatedMvNormal(MvNormal(data.μ[i,:], data.bandwidth),a,b) for i in 1:N],ones(N)./N)

@@ -4,12 +4,15 @@ abstract type AbstractUnbiasingType end
 
 struct DefaultUnbiasing <: AbstractUnbiasingType end
 
-struct BoundaryUnbiasing{T <: AbstractVector, L} <: AbstractUnbiasingType 
+struct BoundaryUnbiasing{T <: AbstractVector, L, K} <: AbstractUnbiasingType 
 	columns::T
+	bandwidth_scale::K
 	bandwidth_dimension::L
 end
 
-BoundaryUnbiasing(columns) = BoundaryUnbiasing(columns, length(columns))
+BoundaryUnbiasing(columns) = BoundaryUnbiasing(columns, length(columns), 1.0)
+BoundaryUnbiasing(columns, bandwidth_scale::Real) = BoundaryUnbiasing(columns, bandwidth_scale, length(columns))
+BoundaryUnbiasing(columns, bandwidth_scale::Real, bandwidth_dimension::Real) = BoundaryUnbiasing(columns, bandwidth_scale, bandwidth_dimension)
 
 import Base
 
@@ -117,6 +120,13 @@ function compute_bandwidth(yₙ, dim)
     (4/(d+2))^(1/(d+4)).*stds.*N.^(-1/(d+4)) # silvermans rule
 end
 
+function compute_stds(yₙ, dim)
+	d = length(yₙ[1])
+    N = length(yₙ)
+    stds = [std(yₙ[n][i] for n ∈ 1:N) for i ∈ 1:d]
+    stds
+end
+
 function compute_bandwidth(yₙ)
     d = length(yₙ[1])
     compute_bandwidth(yₙ, d)
@@ -127,7 +137,7 @@ function mean_and_var_1d(mu, sig, a, b)
     mean(dist), var(dist)
 end
 
-function BoundaryUnbiasedData(yₙ, a, b, unbiasing::BoundaryUnbiasing)
+function BoundaryUnbiasedData(yₙ, a, b, unbiasing::BoundaryUnbiasing; bandwidth_scale=nothing)
 	N = length(yₙ);
 	d = length(yₙ[1])
 	T = eltype(yₙ[1])
@@ -137,7 +147,13 @@ function BoundaryUnbiasedData(yₙ, a, b, unbiasing::BoundaryUnbiasing)
 	M1 = zeros(T, N, d)
 	M2 = zeros(T, N, d, d)
 
-	σ₀ = compute_bandwidth(yₙ, unbiasing.bandwidth_dimension)
+	if bandwidth_scale == nothing
+		σ₀ = compute_bandwidth(yₙ, unbiasing.bandwidth_dimension)
+	elseif unbiasing.bandwidth_scale != nothing
+		σ₀ = bandwidth_scale .* compute_bandwidth(yₙ, unbiasing.bandwidth_dimension) # Scale relative to silverman's rule
+	else
+		σ₀ = bandwidth_scale .* compute_stds(yₙ, d) # Scale relative to std devs
+	end
 
 	for n in 1:N
 		for i in 1:d
