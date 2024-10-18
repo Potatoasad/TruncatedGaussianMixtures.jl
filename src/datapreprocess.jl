@@ -12,7 +12,6 @@ end
 
 BoundaryUnbiasing(columns) = BoundaryUnbiasing(columns, length(columns), 1.0)
 BoundaryUnbiasing(columns, bandwidth_scale::Real) = BoundaryUnbiasing(columns, bandwidth_scale, length(columns))
-BoundaryUnbiasing(columns, bandwidth_scale::Real, bandwidth_dimension::Real) = BoundaryUnbiasing(columns, bandwidth_scale, bandwidth_dimension)
 
 import Base
 
@@ -152,7 +151,7 @@ function BoundaryUnbiasedData(yₙ, a, b, unbiasing::BoundaryUnbiasing; bandwidt
 	elseif unbiasing.bandwidth_scale != nothing
 		σ₀ = bandwidth_scale .* compute_bandwidth(yₙ, unbiasing.bandwidth_dimension) # Scale relative to silverman's rule
 	else
-		σ₀ = bandwidth_scale .* compute_stds(yₙ, d) # Scale relative to std devs
+		σ₀ = bandwidth_scale .* compute_bandwidth(yₙ, unbiasing.bandwidth_dimension) #.* compute_stds(yₙ, d) # Scale relative to std devs
 	end
 
 	for n in 1:N

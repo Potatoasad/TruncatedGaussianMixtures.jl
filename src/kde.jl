@@ -118,20 +118,15 @@ function fit_kde(df_in::DataFrame, a, b, cols, bs::BoundaryUnbiasing; subsamplin
     make_mixture(μs, Σs, η, a, b), full_indices[indices] 
 end
 
+fit_kde(df_in, a, b, cols; kwargs...) = fit_kde(df_in, a, b, cols, BoundaryUnbiasing([1 for i in 1:length(a)]); kwargs...)
+fit_kde(df_in, a, b; kwargs...) = fit_kde(df_in, a, b, names(df_in), BoundaryUnbiasing([1 for i in 1:length(a)]); kwargs...)
 
 
 function LSCV(thekde, datapoints::AbstractVector)
     N = length(datapoints)
 
     mean(pdf(thekde, point) for point in datapoints)
-
-
-
-
 end
-
-
-
 
 
 
