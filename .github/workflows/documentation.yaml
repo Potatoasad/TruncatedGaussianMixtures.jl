@@ -1,44 +1,29 @@
-name: documentation
+name: Documentation
 
-on: [push, pull_request, workflow_dispatch]
-
-permissions:
-  contents: write
+on:
+  push:
+    branches:
+      - main # update to match your development branch (master, main, dev, trunk, ...)
+    tags: '*'
+  pull_request:
 
 jobs:
-  docs:
+  build:
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: read
+      statuses: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          sudo apt-get install -y pandoc 
-          pip install numpy pandas scipy jax jaxlib tqdm blackjax
-          pip install sphinx sphinx_rtd_theme myst_parser nbsphinx pygments myst_parser
-          pip install ipython
-      - name: Clean before build and transfer notebooks
-        run: |
-          rm -rf _build/
-          cp *.ipynb ./docs
-      - name: Sphinx build
-        run: |
-          sphinx-apidoc -o ./docs ./quicksampler
-          sphinx-build ./docs _build
-      - name: Create .nojekyll file
-        run: |
-          touch _build/.nojekyll
-      - name: Copy PNG Images
-        run: |
-          cp *.png _build/
-          cp *.jpeg _build/
-          cp *.jpg _build/
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
         with:
-          publish_branch: gh-pages
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _build/
-          force_orphan: true
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - name: Install dependencies
+        run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Build and deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
+        run: julia --project=docs/ docs/make.jl
