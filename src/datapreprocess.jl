@@ -149,7 +149,7 @@ function BoundaryUnbiasedData(yₙ, a, b, unbiasing::BoundaryUnbiasing; bandwidt
 	if bandwidth_scale == nothing
 		σ₀ = compute_bandwidth(yₙ, unbiasing.bandwidth_dimension)
 	elseif unbiasing.bandwidth_scale != nothing
-		σ₀ = bandwidth_scale .* compute_bandwidth(yₙ, unbiasing.bandwidth_dimension) # Scale relative to silverman's rule
+		σ₀ = unbiasing.bandwidth_scale .* compute_bandwidth(yₙ, unbiasing.bandwidth_dimension) # Scale relative to silverman's rule
 	else
 		σ₀ = bandwidth_scale .* compute_bandwidth(yₙ, unbiasing.bandwidth_dimension) #.* compute_stds(yₙ, d) # Scale relative to std devs
 	end

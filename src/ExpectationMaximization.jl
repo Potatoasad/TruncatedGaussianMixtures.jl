@@ -102,10 +102,10 @@ function score(EM::ExpectationMaximization)
 	return total/(n_components(EM)*length(Y))
 end
 
-"""
-Computes the normalized entropy as shown in https://www.cs.cmu.edu/~rsalakhu/papers/emecg.pdf
-Used to decide whether to do EM or ECG
-"""
+#"""
+#Computes the normalized entropy as shown in https://www.cs.cmu.edu/~rsalakhu/papers/emecg.pdf
+#Used to decide whether to do EM or ECG
+#"""
 function normalized_entropy(zⁿₖ)
 	N = length(zⁿₖ); K = length(zⁿₖ[1]);
 	return (-1/(N*log(K)))sum(zⁿₖ[n][k] * log(zⁿₖ[n][k]) for k in 1:K, n in 1:N)

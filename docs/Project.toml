@@ -1,0 +1,4 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
+TruncatedGaussianMixtures = "d6a30cd5-d352-42fd-9418-e34000539a5a"
