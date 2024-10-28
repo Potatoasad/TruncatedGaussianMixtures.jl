@@ -30,6 +30,9 @@ ProgressLogging = "0.1"
 ProgressMeter = "1.9"
 Roots = "2.1"
 Statistics = "1.10"
+DiffRules = "1.15"
+Revise = "3.5"
+BenchmarkTools = "1.5"
 
 [extras]
 DiffRules = "b552c78f-8df3-52c6-915a-8e097449b14b"
