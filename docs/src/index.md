@@ -1,4 +1,4 @@
-# Getting Started
+# Truncated Gaussian Mixtures
 
  This package allows one to fit a gaussian mixture model using Truncated Gaussian Kernels. Works only for Gaussians truncated to lie inside some box. 
 
