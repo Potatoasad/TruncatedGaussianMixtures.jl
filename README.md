@@ -1,6 +1,7 @@
 # TruncatedGaussianMixtures.jl
 [![Documentation](https://img.shields.io/badge/docs-online-blue)](https://potatoasad.github.io/TruncatedGaussianMixtures.jl/index.html)
- Allows one to fit a gaussian mixture model using Truncated Gaussian Kernels. Works only for Gaussians truncated to lie inside some box. 
+
+Allows one to fit a gaussian mixture model using Truncated Gaussian Kernels. Works only for Gaussians truncated to lie inside some box. 
 
 > The algorithm is adapted from [this paper by Lee & Scott](https://www.sciencedirect.com/science/article/abs/pii/S0167947312001156), as well as the algorithm for computing the first two moments of a truncated gaussian with full covariances.
 
