@@ -1,7 +1,7 @@
 name = "TruncatedGaussianMixtures"
 uuid = "d6a30cd5-d352-42fd-9418-e34000539a5a"
 authors = ["Asad Hussain <asadhussain625@gmail.com>"]
-version = "0.1.0"
+version = "0.1.2"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
