@@ -1,4 +1,5 @@
 # TruncatedGaussianMixtures.jl
+[![DOI](https://zenodo.org/badge/542829533.svg)](https://doi.org/10.5281/zenodo.14003561)
 [![Documentation](https://img.shields.io/badge/docs-online-blue)](https://potatoasad.github.io/TruncatedGaussianMixtures.jl/index.html)
 
 Allows one to fit a gaussian mixture model using Truncated Gaussian Kernels. Works only for Gaussians truncated to lie inside some box. 
