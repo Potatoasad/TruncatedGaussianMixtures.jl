@@ -4,7 +4,6 @@ authors = ["Asad Hussain <asadhussain625@gmail.com>"]
 version = "0.1.0"
 
 [deps]
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DiffRules = "b552c78f-8df3-52c6-915a-8e097449b14b"
@@ -16,12 +15,27 @@ LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 MvNormalCDF = "37188c8d-bc69-4638-b057-733e744175ec"
 ProgressLogging = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
-StatsBase = "0.34"
 Clustering = "0.15"
+StatsBase = "0.34"
+DataFrames = "1.6"
+Distributions = "0.25"
+LogExpFunctions = "0.3"
+MvNormalCDF = "0.3"
+ProgressLogging = "0.1"
+ProgressMeter = "1.9"
+Roots = "2.1"
+Statistics = "1.10"
+
+[extras]
+DiffRules = "b552c78f-8df3-52c6-915a-8e097449b14b"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+
+[targets]
+test = ["Test", "DiffRules", "Revise", "BenchmarkTools"]
