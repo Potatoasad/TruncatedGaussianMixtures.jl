@@ -17,6 +17,9 @@ function log_mvnormcdf(dist::DiagNormal, a, b)
 end
 
 function log_mvnormcdf(dist::FullNormal, a, b)
+	if all(a .== -Inf) & all(b .== -Inf)
+		return zero(a[1])
+	end
 	x,_ = mvnormcdf(dist, a, b)
 	log(x)
 end
