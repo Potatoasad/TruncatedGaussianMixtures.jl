@@ -1,10 +1,10 @@
 
-mutable struct ExpectationMaximization{CVS <: AbstractCovarianceStructure, L, T, K, S}
+mutable struct ExpectationMaximization{CVS <: AbstractCovarianceStructure, D <: AbstractFloat, L, T, K, S}
 	data::L
 	mix::T
-	tol::Float64
+	tol::D
 	zⁿₖ::K
-	score::Float64
+	score::D
 	converged::Bool
 	cov_type::CVS
 	block_structure::Vector{Int64}
@@ -38,7 +38,7 @@ function Zⁿ(x::MixtureModel, datapoint::AbstractVector)
 	return exp.(unnormalized .- LogExpFunctions.logsumexp(unnormalized))
 end
 
-function Zⁿ(x::MixtureModel, datapoint::AbstractVector, β::Float64)
+function Zⁿ(x::MixtureModel, datapoint::AbstractVector, β::AbstractFloat)
 	N_kernels = length(x.components)
 	unnormalized = zeros(N_kernels);
 	for k ∈ 1:N_kernels
@@ -58,7 +58,7 @@ function Zⁿ!(unnormalized, x::MixtureModel, datapoint::AbstractVector)
 	end
 end
 
-function Zⁿ!(unnormalized, x::MixtureModel, datapoint::AbstractVector, β::Float64)
+function Zⁿ!(unnormalized, x::MixtureModel, datapoint::AbstractVector, β::AbstractFloat)
 	N_kernels = length(x.components)
 	for k ∈ 1:N_kernels
 		unnormalized[k] = log(x.prior.p[k]) + β * Distributions.logpdf(x.components[k], datapoint)
@@ -111,7 +111,7 @@ function normalized_entropy(zⁿₖ)
 	return (-1/(N*log(K)))sum(zⁿₖ[n][k] * log(zⁿₖ[n][k]) for k in 1:K, n in 1:N)
 end
 
-function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: DiagonalCovariance}
+function update!(EM::ExpectationMaximization{CVS}, β::AbstractFloat) where {CVS <: DiagonalCovariance}
 	mix = EM.mix
 	μs, Σs, η = initialize_like(mix)
 
@@ -235,7 +235,7 @@ update!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovariance} = up
 
 
 
-function update_old!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: DiagonalCovariance}
+function update_old!(EM::ExpectationMaximization{CVS}, β::AbstractFloat) where {CVS <: DiagonalCovariance}
 	mix = EM.mix
 	μs, Σs, η = initialize_like(mix)
 
@@ -298,7 +298,7 @@ end
 update_old!(EM::ExpectationMaximization{CVS}) where {CVS <: DiagonalCovariance} = update!(EM, 1.0)
 
 
-function update_old!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: FullCovariance}
+function update_old!(EM::ExpectationMaximization{CVS}, β::AbstractFloat) where {CVS <: FullCovariance}
 	mix = EM.mix
 	#μs = deepcopy(mix.μ1); μ2 = deepcopy(mix.μ2)
 	#σ1 = deepcopy(mix.σ1); σ2 = deepcopy(mix.σ2)
@@ -364,7 +364,7 @@ update_old!(EM::ExpectationMaximization{CVS}) where {CVS <: FullCovariance} = up
 
 
 
-function update!(EM::ExpectationMaximization{CVS}, β::Float64) where {CVS <: FullCovariance}
+function update!(EM::ExpectationMaximization{CVS}, β::AbstractFloat) where {CVS <: FullCovariance}
 	mix = EM.mix
 	bs = CovarianceBlockStructure(EM.block_structure)
 	#μs = deepcopy(mix.μ1); μ2 = deepcopy(mix.μ2)

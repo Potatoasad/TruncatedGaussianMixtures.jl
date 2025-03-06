@@ -20,28 +20,28 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
+BenchmarkTools = "1.5"
 Clustering = "0.15"
-StatsBase = "0.34"
 DataFrames = "1.6"
+DiffRules = "1.15"
 Distributions = "0.25"
+ForwardDiff = "0.10"
+InvertedIndices = "1.3"
 LogExpFunctions = "0.3"
 MvNormalCDF = "0.3"
 ProgressLogging = "0.1"
 ProgressMeter = "1.9"
+Revise = "3.5"
 Roots = "2.1"
 Statistics = "1.10"
-DiffRules = "1.15"
-Revise = "3.5"
-BenchmarkTools = "1.5"
-ForwardDiff = "0.10"
-InvertedIndices = "1.3"
+StatsBase = "0.34"
 julia = "1"
 
 [extras]
-DiffRules = "b552c78f-8df3-52c6-915a-8e097449b14b"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+DiffRules = "b552c78f-8df3-52c6-915a-8e097449b14b"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test", "DiffRules", "Revise", "BenchmarkTools"]
