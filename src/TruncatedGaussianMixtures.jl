@@ -16,6 +16,7 @@ using DataFrames
 using DiffRules
 using ForwardDiff
 using Roots
+using Interpolations
 
 include("block_structure.jl")
 include("TruncatedMvNormal/loglikelihood.jl")
@@ -26,6 +27,8 @@ include("initialize.jl")
 include("ExpectationMaximization.jl")
 include("annealing_schedule.jl")
 include("Transformations/AbstractTransformation.jl")
+include("Transformations/ComposeTransformation.jl")
+include("Transformations/QuantileTransformation.jl")
 include("fit.jl")
 include("kde.jl")
 
@@ -33,6 +36,8 @@ include("kde.jl")
 export update!, ExpectationMaximization, TruncatedMvNormal, fit_gmm, initialize, AnnealingSchedule
 export iterate_to_conclusion, fit_best_truncated_normal_single
 export AbstractTransformation, Transformation, forward, inverse, domain_columns, image_columns, sample
+export QuantileTransformer, fit_quantile_transformer, transform, inverse_transform, compose
+export add_quantile_suffix, add_quantile_transformation
 export BoundaryUnbiasing, BoundaryUnbiasedData
 export fit_kde
 
