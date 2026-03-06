@@ -60,7 +60,7 @@ end
 add_quantile_suffix(x::String) = "$(x)_quantile"
 add_quantile_suffix(x::Symbol) = Symbol("$(string(x))_quantile")
 
-function add_quantile_transformation(T::AbstractTransformation, df::DataFrame; ignore_quantile_columns=[], output_distribution=:normal, n_quantiles=100)
+function add_quantile_transformation(T::AbstractTransformation, df::DataFrame; ignore_quantile_columns=[], output_distribution=:normal, n_quantiles=1000)
     columns = image_columns(T)
     df_forward = forward(T, df)
     qts = [fit_quantile_transformer(df_forward[!, col], n_quantiles=n_quantiles, output_distribution=output_distribution) for col in columns];
