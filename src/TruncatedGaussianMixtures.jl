@@ -17,6 +17,8 @@ using DiffRules
 using ForwardDiff
 using Roots
 using Interpolations
+using HDF5
+using SHA
 
 include("block_structure.jl")
 include("TruncatedMvNormal/loglikelihood.jl")
@@ -31,6 +33,7 @@ include("Transformations/ComposeTransformation.jl")
 include("Transformations/QuantileTransformation.jl")
 include("fit.jl")
 include("kde.jl")
+include("tgmm_fit_io.jl")
 
 
 export update!, ExpectationMaximization, TruncatedMvNormal, fit_gmm, initialize, AnnealingSchedule
@@ -40,5 +43,6 @@ export QuantileTransformer, fit_quantile_transformer, transform, inverse_transfo
 export add_quantile_suffix, add_quantile_transformation
 export BoundaryUnbiasing, BoundaryUnbiasedData
 export fit_kde
+export TGMMFit, load_tgmm_h5, save_tgmm_h5, tgmmfit_to_dict, tgmmfit_from_dict
 
 end # module TruncatedGaussianMixtures

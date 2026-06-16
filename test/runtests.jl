@@ -51,3 +51,5 @@ end
 	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:full, tol=1e-3, progress=true)...)) ≤ 2e-1
 	@test abs(KLDivergence(test_result_pair(d=10, K=10, cov=:diag, tol=1e-3, progress=true)...)) ≤ 1e-1
 end
+
+include("tgmm_hdf5_interop_test.jl")
