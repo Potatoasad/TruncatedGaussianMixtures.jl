@@ -16,7 +16,7 @@ function log_mvnormcdf(dist::DiagNormal, a, b)
 	total
 end
 
-function log_mvnormcdf(dist::FullNormal, a, b)
+function log_mvnormcdf(dist::FullNormalLike, a, b)
 	if all(a .== -Inf) & all(b .== -Inf)
 		return zero(a[1])
 	end

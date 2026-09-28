@@ -112,7 +112,7 @@ function EXᵢXⱼ(Σ,a,b)
     M2
 end
     
-function moments(TN::TruncatedMvNormal{FullNormal,T}) where {T <: Real}
+function moments(TN::TruncatedMvNormal{<:FullNormalLike,T}) where {T <: Real}
     EX1 = EXᵢ(TN.normal.Σ,TN.a .- TN.normal.μ, TN.b .- TN.normal.μ)
     EX2 = EXᵢXⱼ(TN.normal.Σ, TN.a.-TN.normal.μ, TN.b.-TN.normal.μ)
     EY1 = EX1 .+ TN.normal.μ
@@ -122,7 +122,7 @@ function moments(TN::TruncatedMvNormal{FullNormal,T}) where {T <: Real}
 end
 
 
-function moments(TN::TruncatedMvNormal{FullNormal,T}, block_structure::Vector{L}) where {T <: Real, L}
+function moments(TN::TruncatedMvNormal{<:FullNormalLike,T}, block_structure::Vector{L}) where {T <: Real, L}
     EX1 = EXᵢ(TN.normal.Σ,TN.a .- TN.normal.μ, TN.b .- TN.normal.μ)
     EX2 = EXᵢXⱼ(TN.normal.Σ, TN.a.-TN.normal.μ, TN.b.-TN.normal.μ)
     EY1 = EX1 .+ TN.normal.μ

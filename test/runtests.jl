@@ -2,6 +2,10 @@
 using Revise, TruncatedGaussianMixtures
 using Distributions, LinearAlgebra, Test
 
+# batched moment oracle / M-step from sufficient statistics
+include("test_moment_oracle.jl")
+include("test_quantile_transformation.jl")
+
 function generate_random_mixture(;d = 2, K=3, cov=:full)
 	scaling = rand(0.5:0.1:10.0, d);
 	diag_scaling = rand(0.5:0.1:2.0)	

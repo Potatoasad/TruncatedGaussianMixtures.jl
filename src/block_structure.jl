@@ -1,3 +1,8 @@
+# `Distributions.FullNormal` pins the PDMat type parameters exactly, and newer
+# PDMats versions add a Cholesky-type parameter, so `MvNormal(μ, Σ::Matrix)` is no
+# longer a `FullNormal`. Match any PDMat-backed MvNormal instead.
+const FullNormalLike = MvNormal{T, <:Distributions.PDMats.PDMat{T}} where {T}
+
 struct CovarianceBlockStructure{T, L}
 	design_vector::Vector{T}
 	block_dictionary::Dict{T, Vector{L}}

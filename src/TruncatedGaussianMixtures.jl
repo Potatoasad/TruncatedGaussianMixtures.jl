@@ -22,9 +22,15 @@ include("block_structure.jl")
 include("TruncatedMvNormal/loglikelihood.jl")
 include("TruncatedMvNormal/moments.jl")
 include("TruncatedMvNormal/moment_matching.jl")
+include("TruncatedMvNormal/moment_cache.jl")
+include("TruncatedMvNormal/small_block_moments.jl")
 include("datapreprocess.jl")
 include("initialize.jl")
 include("ExpectationMaximization.jl")
+include("fitting/component_oracle.jl")
+include("fitting/em_from_statistics.jl")
+include("fitting/python_interface.jl")
+include("fitting/precompile.jl")
 include("annealing_schedule.jl")
 include("Transformations/AbstractTransformation.jl")
 include("Transformations/ComposeTransformation.jl")
@@ -40,5 +46,8 @@ export QuantileTransformer, fit_quantile_transformer, transform, inverse_transfo
 export add_quantile_suffix, add_quantile_transformation
 export BoundaryUnbiasing, BoundaryUnbiasedData
 export fit_kde
+export OracleContext, MomentOraclePlan, component_oracle, component_oracle!
+export em_m_step_from_statistics, em_m_step_from_statistics!, truncated_centered_moments
+export mixture_from_arrays, mixture_from_components, truncated_mvnormal, boundary_pseudo_moments
 
 end # module TruncatedGaussianMixtures

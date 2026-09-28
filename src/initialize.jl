@@ -4,7 +4,7 @@ struct DiagonalCovariance <: AbstractCovarianceStructure end
 struct FullCovariance <: AbstractCovarianceStructure end
 
 covariance_type(x::TruncatedMvNormal{DiagNormal}) = DiagonalCovariance
-covariance_type(x::TruncatedMvNormal{FullNormal}) = FullCovariance
+covariance_type(x::TruncatedMvNormal{<:FullNormalLike}) = FullCovariance
 covariance_type(x::MixtureModel) = covariance_type(x.components[1])
 
 mat2vecs(A) = [A[:,i] for i in 1:size(A,2)]
@@ -22,7 +22,7 @@ function initialize_like(AB::MixtureModel{A,B,TruncatedMvNormal{DiagNormal,T}}) 
 	μs, Σs, ηs
 end
 
-function initialize_like(AB::MixtureModel{A,B,TruncatedMvNormal{FullNormal,T}}) where {A,B,T <: Real}
+function initialize_like(AB::MixtureModel{A,B,<:TruncatedMvNormal{<:FullNormalLike,T}}) where {A,B,T <: Real}
 	d = length(AB); K = n_components(AB)
 	Σsshape = (d,d,K)
 	μsshape = (d,K)
@@ -168,4 +168,4 @@ function initialize(X,N, a, b; cov=:diag, weights=nothing)
 end
 
 DiagonalCovMixtureType = MixtureModel{A,B,TruncatedMvNormal{DiagNormal,T}} where {A,B,T <: Real}
-FullCov = MixtureModel{A,B, TruncatedMvNormal{FullNormal,T}} where {A,B,T <: Real}
+FullCov = MixtureModel{A,B,<:TruncatedMvNormal{<:FullNormalLike,T}} where {A,B,T <: Real}
